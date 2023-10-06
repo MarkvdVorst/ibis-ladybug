@@ -15,13 +15,9 @@
 */
 package nl.nn.testtool.transform;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PrintWriter;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.lang.invoke.MethodHandles;
+import java.util.TooManyListenersException;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
@@ -34,6 +30,9 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 
+import org.apache.xalan.trace.PrintTraceListener;
+import org.apache.xalan.trace.TraceManager;
+import org.apache.xalan.transformer.TransformerImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,9 +48,18 @@ public class ReportXmlTransformer {
 	private Transformer transformer;
 	private String createTransformerError;
 	private Exception createTransformerException;
+	private PrintTraceListener ptl;
 
 	@PostConstruct
 	public void init() {
+		try{
+			FileWriter fileWriter = new FileWriter("../output.log");
+			PrintWriter printWriter = new PrintWriter(fileWriter, true);
+			ptl = new PrintTraceListener(printWriter);
+		}catch(IOException e)
+		{
+			log.debug("Filewriter could not be made", e);
+		}
 		StringBuffer result = new StringBuffer();
 		InputStream stream = getClass().getClassLoader().getResourceAsStream(xsltResource);
 		if (stream == null) {
@@ -119,6 +127,10 @@ public class ReportXmlTransformer {
 			StreamSource streamSource = new StreamSource(new StringReader(xml));
 			StreamResult streamResult = new StreamResult(stringWriter);
 			try {
+				TransformerImpl transformerImpl = (TransformerImpl) transformer;
+				TraceManager traceManager = transformerImpl.getTraceManager();
+				traceManager.addTraceListener(ptl);
+
 				transformer.transform(streamSource, streamResult);
 			} catch (TransformerException e) {
 				String message = "Could not transform report xml";
@@ -126,6 +138,9 @@ public class ReportXmlTransformer {
 				printException(message, e, stringWriter);
 				stringWriter.write("\n");
 				printFirstXmlCharacters(xml, stringWriter);
+			}catch(TooManyListenersException e)
+			{
+				log.debug("Could not add trace listener", e);
 			}
 		}
 		return stringWriter.toString();

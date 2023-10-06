@@ -54,6 +54,16 @@
   </developers>
 
   <dependencies>
+    <dependency>
+      <groupId>xalan-testing</groupId>
+      <artifactId>xalan-testing</artifactId>
+      <version>2.7.0</version>
+    </dependency>
+    <dependency>
+      <groupId>serializer-testing</groupId>
+      <artifactId>serializer-testing</artifactId>
+      <version>2.7.0</version>
+    </dependency>
     <!--
     https://www.npmjs.com/package/@wearefrank/ladybug
     https://www.webjars.org/all (search for @wearefrank/ladybug)
