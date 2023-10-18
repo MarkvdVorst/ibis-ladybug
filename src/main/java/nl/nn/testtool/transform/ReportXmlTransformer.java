@@ -20,7 +20,7 @@ import java.lang.invoke.MethodHandles;
 import java.util.TooManyListenersException;
 
 import javax.annotation.PostConstruct;
-import javax.inject.Inject;
+import nl.nn.testtool.Inject;
 import javax.inject.Singleton;
 import javax.xml.transform.ErrorListener;
 import javax.xml.transform.Transformer;
@@ -52,14 +52,6 @@ public class ReportXmlTransformer {
 
 	@PostConstruct
 	public void init() {
-		try{
-			FileWriter fileWriter = new FileWriter("../output.log");
-			PrintWriter printWriter = new PrintWriter(fileWriter, true);
-			ptl = new PrintTraceListener(printWriter);
-		}catch(IOException e)
-		{
-			log.debug("Filewriter could not be made", e);
-		}
 		StringBuffer result = new StringBuffer();
 		InputStream stream = getClass().getClassLoader().getResourceAsStream(xsltResource);
 		if (stream == null) {
