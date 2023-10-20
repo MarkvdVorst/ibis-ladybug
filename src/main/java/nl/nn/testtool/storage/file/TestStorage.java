@@ -21,7 +21,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import javax.annotation.PostConstruct;
-import javax.inject.Inject;
+import nl.nn.testtool.Inject;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
