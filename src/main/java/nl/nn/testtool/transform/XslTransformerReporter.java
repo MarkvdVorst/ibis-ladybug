@@ -171,6 +171,10 @@ public class XslTransformerReporter {
         testTool.infopoint(correlationId, null, "Template XSL", content.toString());
 
         //Show the xml that the xsl works on
+        String result = GetXMLOfTemplate(content.toString());
+
+        testTool.infopoint(correlationId, null, "Template XML", result);
+
 
         //Show to result (not sure if this is a good idea yet)
 
@@ -203,5 +207,21 @@ public class XslTransformerReporter {
             result.append("</").append(node.getNodeName()).append(">");
         }
         return result;
+    }
+
+    private String GetXMLOfTemplate(String xsl) {
+        try {
+            TransformerFactory factory = TransformerFactoryImpl.newInstance();
+            Transformer transformer = factory.newTransformer();
+
+            StringWriter writer = new StringWriter();
+            Result result = new StreamResult(writer);
+
+            transformer.transform(xmlSource, result);
+
+            return writer.toString();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }
