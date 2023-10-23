@@ -5,9 +5,7 @@ import org.apache.xalan.processor.TransformerFactoryImpl;
 import org.apache.xalan.trace.PrintTraceListener;
 import org.apache.xalan.trace.TraceManager;
 import org.apache.xalan.transformer.TransformerImpl;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
+import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -123,24 +121,19 @@ public class XslTransformerReporter {
     }
 
     private void LoopThroughAllTemplates(String correlationId) {
-        //TODO zet een nodelist van alle templates in de tracemanager van Get5CompleteXSLT. Overleg met Yaseen en Jaco of dit een goed idee is en of er andere opties zijn.
         StringBuilder stringBuilder = new StringBuilder();
 
         try {
             Map<Source, NodeList> templateHashMap = GetAllTemplateNodes(xslSource);
-//            for (NodeList templateNode : templateHashMap) {
-//                for (int j = 0; j < templateNode.getLength(); j++) {
-//                    NewTemplateNode(correlationId, (Element) templateNode.item(j));
-//                }
-//            }
             for (Map.Entry<Source, NodeList> entry : templateHashMap.entrySet()) {
                 for (int i = 0; i < entry.getValue().getLength(); i++) {
                     File file = new File(entry.getKey().getSystemId());
                     Element element = (Element) entry.getValue().item(i);
                     String title = entry.getValue().item(i).getNodeName() + " match=" + element.getAttribute("match");
                     String content = "Template imported from location: " + file.getPath();
-                    testTool.startpoint(correlationId, null, title, content);
 
+                    testTool.startpoint(correlationId, null, title, content);
+                    HandleTemplateNodes(correlationId, entry.getKey(), entry.getValue().item(i));
                     testTool.endpoint(correlationId, null, title, content);
                 }
             }
@@ -168,5 +161,47 @@ public class XslTransformerReporter {
             }
         }
         return templateHashMap;
+    }
+
+    private void HandleTemplateNodes(String correlationId, Source templateSource, Node templateNode) {
+        //Show the xsl for the template
+        NodeList children = templateNode.getChildNodes();
+        StringBuilder content = new StringBuilder();
+        GetNodeLayout(content, templateNode, 0);
+        testTool.infopoint(correlationId, null, "Template XSL", content.toString());
+
+        //Show the xml that the xsl works on
+
+        //Show to result (not sure if this is a good idea yet)
+
+        //Show the XSLT trace
+    }
+
+    private StringBuilder GetNodeLayout(StringBuilder result, Node node, int indent) {
+        for (int i = 0; i < indent; i++) {
+            result.append("  ");
+        }
+        if (node.getNodeType() == Node.TEXT_NODE) {
+            result.append(node.getNodeValue());
+        } else {
+            result.append("<").append(node.getNodeName());
+            if (node.hasAttributes()) {
+                NamedNodeMap attributes = node.getAttributes();
+                for (int j = 0; j < attributes.getLength(); j++) {
+                    Node attribute = attributes.item(j);
+                    result.append(" ").append(attribute.getNodeName()).append("=\"").append(attribute.getNodeValue()).append("\"");
+                }
+            }
+            result.append(">");
+            NodeList children = node.getChildNodes();
+            for (int i = 0; i < children.getLength(); i++) {
+                GetNodeLayout(result, children.item(i), indent + 1);
+            }
+            for (int i = 0; i < indent; i++) {
+                result.append("  ");
+            }
+            result.append("</").append(node.getNodeName()).append(">");
+        }
+        return result;
     }
 }
