@@ -1,10 +1,13 @@
 package nl.nn.testtool.transform;
 
+import net.sf.saxon.functions.ConstantFunction;
 import nl.nn.testtool.TestTool;
+import org.apache.cxf.jaxrs.ext.Nullable;
 import org.apache.xalan.processor.TransformerFactoryImpl;
 import org.apache.xalan.trace.PrintTraceListener;
 import org.apache.xalan.trace.TraceManager;
 import org.apache.xalan.transformer.TransformerImpl;
+import org.apache.xpath.operations.Bool;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
@@ -12,6 +15,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.*;
+import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import java.io.*;
@@ -163,27 +167,31 @@ public class XslTransformerReporter {
         return templateHashMap;
     }
 
-    private void HandleTemplateNodes(String correlationId, Source templateSource, Node templateNode) {
+    private void HandleTemplateNodes(String correlationId, Source templateSource, Node templateNode) throws IOException {
         //Show the xsl for the template
         NodeList children = templateNode.getChildNodes();
         StringBuilder content = new StringBuilder();
-        GetNodeLayout(content, templateNode, 0);
+        GetNodeLayout(content, templateNode, 0, true);
         testTool.infopoint(correlationId, null, "Template XSL", content.toString());
 
         //Show the xml that the xsl works on
-        String result = GetXMLOfTemplate(content.toString());
+        StringBuilder result = GetXMLOfTemplate(templateNode);
 
-        testTool.infopoint(correlationId, null, "Template XML", result);
-
+        testTool.infopoint(correlationId, null, "Template XML", result.toString());
 
         //Show to result (not sure if this is a good idea yet)
+        Writer writer = testTool.infopoint(correlationId, null, "XSLT of template", new StringWriter());
+        GetTransformedXML(correlationId, templateNode);
+        writer.close();
 
         //Show the XSLT trace
     }
 
-    private StringBuilder GetNodeLayout(StringBuilder result, Node node, int indent) {
-        for (int i = 0; i < indent; i++) {
-            result.append("  ");
+    private StringBuilder GetNodeLayout(StringBuilder result, Node node, int indent, boolean needsIndent) {
+        if (needsIndent) {
+            for (int i = 0; i < indent; i++) {
+                result.append("\t");
+            }
         }
         if (node.getNodeType() == Node.TEXT_NODE) {
             result.append(node.getNodeValue());
@@ -199,29 +207,45 @@ public class XslTransformerReporter {
             result.append(">");
             NodeList children = node.getChildNodes();
             for (int i = 0; i < children.getLength(); i++) {
-                GetNodeLayout(result, children.item(i), indent + 1);
+                GetNodeLayout(result, children.item(i), indent + 1, needsIndent);
             }
-            for (int i = 0; i < indent; i++) {
-                result.append("  ");
+            if (needsIndent) {
+                for (int i = 0; i < indent; i++) {
+                    result.append("\t");
+                }
             }
             result.append("</").append(node.getNodeName()).append(">");
+            System.out.println(result);
         }
         return result;
     }
 
-    private String GetXMLOfTemplate(String xsl) {
+    private StringBuilder GetXMLOfTemplate(Node templateNode) {
         try {
-            TransformerFactory factory = TransformerFactoryImpl.newInstance();
-            Transformer transformer = factory.newTransformer();
+            File file = new File(xmlSource.getSystemId());
+            DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+            Document doc = documentBuilder.parse(file);
 
-            StringWriter writer = new StringWriter();
-            Result result = new StreamResult(writer);
+            NodeList nodelist = doc.getElementsByTagName("*");
+            Element templateElement = (Element) templateNode;
+            String match = templateElement.getAttribute("match");
 
-            transformer.transform(xmlSource, result);
-
-            return writer.toString();
+            StringBuilder result = new StringBuilder();
+            for (int i = 0; i < nodelist.getLength(); i++) {
+                if (nodelist.item(i).getNodeName().equals(match) || match.equals("/")) {
+                    GetNodeLayout(result, nodelist.item(i), 0, true);
+                    result.append("\n");
+                }
+            }
+            return result;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private void GetTransformedXML(String correlationId, Node templateNode) {
+        //TODO: DO something
+        return;
     }
 }
