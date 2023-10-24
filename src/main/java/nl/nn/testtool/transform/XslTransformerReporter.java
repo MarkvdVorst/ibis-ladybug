@@ -180,9 +180,9 @@ public class XslTransformerReporter {
         testTool.infopoint(correlationId, null, "Template XML", result.toString());
 
         //Show to result (not sure if this is a good idea yet)
-        Writer writer = testTool.infopoint(correlationId, null, "XSLT of template", new StringWriter());
-        GetTransformedXML(correlationId, templateNode);
-        writer.close();
+//        Writer writer = testTool.infopoint(correlationId, null, "XSLT of template", new StringWriter());
+//        GetTransformedXML(correlationId, templateNode);
+//        writer.close();
 
         //Show the XSLT trace
     }
