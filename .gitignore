@@ -4,3 +4,10 @@
 /.classpath
 /.settings
 /skip-replace-inject.txt
+/.idea/compiler.xml
+/.idea/encodings.xml
+/.idea/jarRepositories.xml
+/.idea/misc.xml
+/.idea/libraries/serializer.xml
+/.idea/vcs.xml
+/.idea/workspace.xml
