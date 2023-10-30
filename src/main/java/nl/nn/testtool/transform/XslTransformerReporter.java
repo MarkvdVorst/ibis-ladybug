@@ -1,14 +1,7 @@
 package nl.nn.testtool.transform;
 
-import net.sf.saxon.functions.ConstantFunction;
 import nl.nn.testtool.TestTool;
-import org.apache.cxf.jaxrs.ext.Nullable;
-import org.apache.xalan.processor.TransformerFactoryImpl;
-import org.apache.xalan.trace.PrintTraceListener;
 import org.apache.xalan.trace.TemplateTrace;
-import org.apache.xalan.trace.TraceManager;
-import org.apache.xalan.transformer.TransformerImpl;
-import org.apache.xpath.operations.Bool;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
@@ -16,35 +9,34 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.*;
-import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
 import java.io.*;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Stack;
 
 public class XslTransformerReporter {
-    private TestTool testTool;
-    private StreamSource xmlSource;
-    private StreamSource xslSource;
-    private TraceManager traceManager;
-    private Stack<TemplateTrace> templateTraceStack;
+    private final TestTool testTool;
+    private final StreamSource xmlSource;
+    private final StreamSource xslSource;
+    private final String xsltResult;
+    private final List<TemplateTrace> templateTraceList;
 
-    public XslTransformerReporter(TestTool testTool, StreamSource xmlSource, StreamSource xslSource, Stack<TemplateTrace> templateTraceStack) {
+    public XslTransformerReporter(TestTool testTool, StreamSource xmlSource, StreamSource xslSource, List<TemplateTrace> templateTraceStack, String xsltResult) {
+        //TODO: gebruik files
         this.testTool = testTool;
         this.xmlSource = xmlSource;
         this.xslSource = xslSource;
-        this.templateTraceStack = templateTraceStack;
+        this.templateTraceList = templateTraceStack;
+        this.xsltResult = xsltResult;
     }
 
     public void Start(String correlationId, String reportName) {
         testTool.startpoint(correlationId, xmlSource.getPublicId(), "XSLT start point", "XSLT start point");
-
         try {
-            System.out.println("start");
             StringWriter writer = new StringWriter();
             StreamResult result = new StreamResult(writer);
             TransformerFactory tFactory = TransformerFactory.newInstance();
@@ -59,6 +51,8 @@ public class XslTransformerReporter {
 
             PrintAllImportedXSL(correlationId);
 
+            PrintCompleteTraceFromStack(correlationId);
+
             PrintCompleteXSLT(correlationId);
 
             LoopThroughAllTemplates(correlationId);
@@ -70,7 +64,6 @@ public class XslTransformerReporter {
 
     private void PrintAllImportedXSL(String correlationId) {
         try {
-            System.out.println("print all xsl");
             File file = new File(xslSource.getSystemId());
             DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
@@ -103,42 +96,26 @@ public class XslTransformerReporter {
     }
 
     private void PrintCompleteXSLT(String correlationId) {
-        System.out.println("print entire XSLT");
-
-        String completeXSLT = CompleteTraceFromStack();
-        testTool.infopoint(correlationId, null, "Complete XSLT Trace", completeXSLT);
-
-        //TODO: Pak de XSLT uit ladybug en zet deze als infopoint erbij
+        testTool.infopoint(correlationId, null, "Complete XSLT", xsltResult);
     }
 
-    private String CompleteTraceFromStack(){
-        System.out.println("complete stack");
+    private void PrintCompleteTraceFromStack(String correlationId){
         StringBuilder result = new StringBuilder();
 
         //TODO: fix de volgorde en looks van de xslt trace
-        for (TemplateTrace templateTrace : templateTraceStack) {
-            result.append(templateTrace.GetWholeTrace());
+        for (TemplateTrace templateTrace : templateTraceList) {
+            result.append(templateTrace.GetWholeTrace(true));
         }
 
-        return result.toString();
+        testTool.infopoint(correlationId, null, "Complete XSLT Trace", result.toString());
     }
 
     private void LoopThroughAllTemplates(String correlationId) {
-        System.out.println("loop templates");
-        StringBuilder stringBuilder = new StringBuilder();
-
         try {
             Map<Source, NodeList> templateHashMap = GetAllTemplateNodes(xslSource);
             for (Map.Entry<Source, NodeList> entry : templateHashMap.entrySet()) {
                 for (int i = 0; i < entry.getValue().getLength(); i++) {
-                    File file = new File(entry.getKey().getSystemId());
-                    Element element = (Element) entry.getValue().item(i);
-                    String title = entry.getValue().item(i).getNodeName() + " match=" + element.getAttribute("match");
-                    String content = "Template imported from location: " + file.getPath();
-
-//                    testTool.startpoint(correlationId, null, title, content);
-//                    HandleTemplateNodes(correlationId, entry.getKey(), entry.getValue().item(i));
-//                    testTool.endpoint(correlationId, null, title, content);
+                    HandleTemplateNodes(correlationId, entry, i);
                 }
             }
         } catch (Exception e) {
@@ -147,7 +124,6 @@ public class XslTransformerReporter {
     }
 
     private Map<Source, NodeList> GetAllTemplateNodes(StreamSource source) throws ParserConfigurationException, IOException, SAXException {
-        System.out.println("get all template nodes");
         File file = new File(source.getSystemId());
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
@@ -168,29 +144,30 @@ public class XslTransformerReporter {
         return templateHashMap;
     }
 
-    private void HandleTemplateNodes(String correlationId, Source templateSource, Node templateNode) throws IOException {
+    private void HandleTemplateNodes(String correlationId, Map.Entry<Source, NodeList> entry, int index) {
+        File file = new File(entry.getKey().getSystemId());
+        Element element = (Element) entry.getValue().item(index);
+        String title = entry.getValue().item(index).getNodeName() + " match=" + element.getAttribute("match");
+
         //Show the xsl for the template
-        NodeList children = templateNode.getChildNodes();
         StringBuilder content = new StringBuilder();
-        GetNodeLayout(content, templateNode, 0, true);
-        testTool.infopoint(correlationId, null, "Template XSL", content.toString());
+        GetNodeLayout(content, element, 0, true);
+
+        testTool.startpoint(correlationId, null, title, content.toString());
+
+        testTool.infopoint(correlationId, null, "XSL location", "Template imported from location: " + file.getPath());
 
         //Show the xml that the xsl works on
-        StringBuilder result = GetXMLOfTemplate(templateNode);
-
+        StringBuilder result = GetXMLOfTemplate(element);
         testTool.infopoint(correlationId, null, "Template XML", result.toString());
 
-        //Show to result (not sure if this is a good idea yet)
-
-//        Writer writer = testTool.infopoint(correlationId, null, "XSLT of template", new StringWriter());
-//        GetTransformedXML(correlationId, templateNode);
-//        writer.close();
-
         //Show the XSLT trace
+        PrintTracePerTemplate(correlationId, element.getAttribute("match"));
+
+        testTool.endpoint(correlationId, null, title, content.toString());
     }
 
-    private StringBuilder GetNodeLayout(StringBuilder result, Node node, int indent, boolean needsIndent) {
-        System.out.println("get node layout");
+    private void GetNodeLayout(StringBuilder result, Node node, int indent, boolean needsIndent) {
         if (needsIndent) {
             for (int i = 0; i < indent; i++) {
                 result.append("\t");
@@ -219,11 +196,9 @@ public class XslTransformerReporter {
             }
             result.append("</").append(node.getNodeName()).append(">");
         }
-        return result;
     }
 
     private StringBuilder GetXMLOfTemplate(Node templateNode) {
-        System.out.println("get xml of template");
         try {
             File file = new File(xmlSource.getSystemId());
             DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
@@ -247,8 +222,16 @@ public class XslTransformerReporter {
         }
     }
 
-    private void GetTransformedXML(String correlationId, Node templateNode) {
-        //TODO: DO something
-        return;
+    private void PrintTracePerTemplate(String correlationId, String match){
+        boolean wasUsed = true;
+        for (TemplateTrace templateTrace : templateTraceList) {
+            if(templateTrace.GetParentTrace().contains("match='" + match + "'") && templateTrace.GetTemplateName() != null){
+                wasUsed = false;
+                testTool.infopoint(correlationId, null, "match='" + match + "'", templateTrace.GetWholeTrace(false));
+            }
+        }
+        if(wasUsed){
+            testTool.infopoint(correlationId, null, "No trace match found", "No match was found to perform the XSLT on.");
+        }
     }
 }
