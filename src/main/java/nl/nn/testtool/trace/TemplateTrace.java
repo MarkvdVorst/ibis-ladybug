@@ -6,19 +6,23 @@ import java.util.List;
 public class TemplateTrace {
     private final String _templateName;
     private final String _parentTrace;
-    private final String systemId;
+    private final String _systemId;
     private List<String> _childrenTraces;
 
     public TemplateTrace(String templateName, String systemId, String parentTrace) {
-        this._templateName = "xsl:template match=" + templateName;
+        this._templateName = templateName;
         this._parentTrace = parentTrace;
-        this.systemId = systemId;
+        this._systemId = systemId;
         this._childrenTraces = new ArrayList<>();
     }
 
     /**@return Gets the systemId of the template*/
     public String GetTemplateName(){
         return _templateName;
+    }
+
+    public String GetSystemId() {
+        return this._systemId;
     }
 
     /**@return Gets the entire first trace that mentions the template location and the match for it*/
