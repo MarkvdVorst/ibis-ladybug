@@ -104,7 +104,7 @@ public class XslTransformerReporter {
     private void PrintCompleteTraceFromStack(String correlationId) {
         StringBuilder result = new StringBuilder();
         for (TemplateTrace templateTrace : templateTraceList) {
-            result.append(templateTrace.GetWholeTrace(true)).append("\n");
+            result.append(templateTrace.getWholeTrace(true)).append("\n");
         }
 
         testTool.infopoint(correlationId, null, "Complete XSLT Trace", result.toString());
@@ -113,9 +113,15 @@ public class XslTransformerReporter {
     private void LoopThroughAllTemplates(String correlationId) {
         try {
             for (TemplateTrace templateTrace : templateTraceList) {
-                testTool.startpoint(correlationId, null, "xsl:template match=" + templateTrace.GetTemplateName(), templateTrace.GetWholeTrace(false));
-                PrintXSLOfTemplate(correlationId, templateTrace.GetTemplateName());
-                testTool.endpoint(correlationId, null, "xsl:template match=" + templateTrace.GetTemplateName(), templateTrace.GetWholeTrace(false));
+                if(templateTrace.getSelectedNode() == null) {
+                    testTool.startpoint(correlationId, null, "xsl:template match=" + templateTrace.getTemplateName(), templateTrace.getWholeTrace(false));
+                    PrintXSLOfTemplate(correlationId, templateTrace.getTemplateName());
+                    testTool.endpoint(correlationId, null, "xsl:template match=" + templateTrace.getTemplateName(), templateTrace.getWholeTrace(false));
+                }else{
+                    testTool.startpoint(correlationId, null, "xsl:template match=" + templateTrace.getTemplateName() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
+                    PrintXSLOfTemplate(correlationId, templateTrace.getTemplateName());
+                    testTool.endpoint(correlationId, null, "xsl:template match=" + templateTrace.getTemplateName() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
+                }
             }
         } catch (Exception e) {
             throw new RuntimeException(e);

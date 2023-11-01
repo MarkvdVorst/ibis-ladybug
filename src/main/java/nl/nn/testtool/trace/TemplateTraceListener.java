@@ -134,8 +134,10 @@ public class TemplateTraceListener implements TraceListener {
                 trace.append("\n").append("Selected source node '").append(sourceNode.getNodeName()).append("', at "
                         //+ locator);
                 ).append(file.getName());
+                m_templateTraceList.get(m_templateTraceList.size() - 1).setSelectedNode(sourceNode.getNodeName());
             } else {
                 trace.append("\n").append("Selected source node '").append(sourceNode.getNodeName()).append("'");
+                m_templateTraceList.get(m_templateTraceList.size() - 1).setSelectedNode(sourceNode.getNodeName());
             }
 
             if (ev.m_styleNode.getLineNumber() == 0) {

@@ -7,6 +7,7 @@ public class TemplateTrace {
     private final String _templateName;
     private final String _parentTrace;
     private final String _systemId;
+    private String _selectedNode;
     private List<String> _childrenTraces;
 
     public TemplateTrace(String templateName, String systemId, String parentTrace) {
@@ -16,17 +17,27 @@ public class TemplateTrace {
         this._childrenTraces = new ArrayList<>();
     }
 
+    /**@param nodeName selected node for the trace*/
+    public void setSelectedNode(String nodeName){
+        this._selectedNode = nodeName;
+    }
+
+    /**@return returns the selected node of this trace*/
+    public String getSelectedNode(){
+        return _selectedNode;
+    }
+
     /**@return Gets the systemId of the template*/
-    public String GetTemplateName(){
+    public String getTemplateName(){
         return _templateName;
     }
 
-    public String GetSystemId() {
+    public String getSystemId() {
         return this._systemId;
     }
 
     /**@return Gets the entire first trace that mentions the template location and the match for it*/
-    public String GetParentTrace() {
+    public String getParentTrace() {
         return _parentTrace;
     }
 
@@ -38,12 +49,12 @@ public class TemplateTrace {
 
     /**@param index of child trace
      * @return Get a child trace from a specific index*/
-    public String GetChildTrace(int index) {
+    public String getChildTrace(int index) {
         return _childrenTraces.get(index);
     }
 
     /**@return returns all children traces*/
-    public List<String> GetAllChildTraces() {
+    public List<String> getAllChildTraces() {
         return _childrenTraces;
     }
 
@@ -54,7 +65,7 @@ public class TemplateTrace {
 
     /**@param showSeperator determines whether it shows a line to separate the traces.
      * @return Returns a string that holds the complete trace of the transform*/
-    public String GetWholeTrace(boolean showSeperator){
+    public String getWholeTrace(boolean showSeperator){
         StringBuilder result = new StringBuilder();
 
         if(showSeperator) {
