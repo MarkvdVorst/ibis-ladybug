@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
-import javax.inject.Inject;
+import nl.nn.testtool.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;

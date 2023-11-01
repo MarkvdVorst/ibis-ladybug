@@ -24,7 +24,7 @@ import java.io.UnsupportedEncodingException;
 import java.lang.invoke.MethodHandles;
 
 import javax.annotation.PostConstruct;
-import javax.inject.Inject;
+import nl.nn.testtool.Inject;
 import javax.inject.Singleton;
 import javax.xml.transform.ErrorListener;
 import javax.xml.transform.Transformer;

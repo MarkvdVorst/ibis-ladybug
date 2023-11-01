@@ -18,7 +18,7 @@ package nl.nn.testtool.storage.file;
 import java.util.List;
 
 import javax.annotation.PostConstruct;
-import javax.inject.Inject;
+import nl.nn.testtool.Inject;
 
 import org.springframework.beans.factory.annotation.Autowired;
 
