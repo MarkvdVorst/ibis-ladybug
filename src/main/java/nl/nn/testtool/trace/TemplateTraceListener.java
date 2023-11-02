@@ -73,7 +73,11 @@ public class TemplateTraceListener implements TraceListener {
                     ElemTemplate et = (ElemTemplate) ev.m_styleNode;
 
                     //showing systemid once for file location
-                    trace.append("\n").append("Now using: " + et.getSystemId());
+                    if(et.getSystemId() != null) {
+                        trace.append("\n").append("Now using: " + et.getSystemId());
+                    }else{
+                        trace.append("\n").append("Now using: built-in-rule");
+                    }
 
                     //changed to just file name. reading the whole systemid everytime is hard to read
                     String systemId = ev.m_styleNode.getSystemId();
@@ -82,7 +86,7 @@ public class TemplateTraceListener implements TraceListener {
                         trace.append("\n").append(file.getName() + " Line #" + et.getLineNumber() + ", " + "Column #"
                                 + et.getColumnNumber() + ": " + et.getNodeName() + " ");
                     } else {
-                        trace.append("\n").append("null");
+                        trace.append("\n").append("built-in-rule ");
                     }
 
                     if (null != et.getMatch()) {

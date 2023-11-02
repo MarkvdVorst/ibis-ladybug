@@ -129,9 +129,9 @@ public class XslTransformerReporter {
                     PrintXSLOfTemplate(correlationId, templateTrace.getTemplateName());
                     testTool.endpoint(correlationId, null, "xsl:template match=" + templateTrace.getTemplateName(), templateTrace.getWholeTrace(false));
                 } else {
-                    testTool.startpoint(correlationId, null, "xsl:template match=" + templateTrace.getTemplateName() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
+                    testTool.startpoint(correlationId, null, "built-in-rule match=" + templateTrace.getTemplateName() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
                     PrintXSLOfTemplate(correlationId, templateTrace.getTemplateName());
-                    testTool.endpoint(correlationId, null, "xsl:template match=" + templateTrace.getTemplateName() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
+                    testTool.endpoint(correlationId, null, "built-in-rule match=" + templateTrace.getTemplateName() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
                 }
             }
         } catch (Exception e) {
