@@ -54,11 +54,6 @@
   </developers>
 
   <dependencies>
-    <dependency>
-      <groupId>org.ibissource</groupId>
-      <artifactId>ibis-adapterframework-dbms</artifactId>
-      <version>7.9-SNAPSHOT</version>
-    </dependency>
     <!--
     https://www.npmjs.com/package/@wearefrank/ladybug
     https://www.webjars.org/all (search for @wearefrank/ladybug)

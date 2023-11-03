@@ -31,7 +31,6 @@ import java.util.List;
 
 import javax.annotation.PostConstruct;
 
-import nl.nn.adapterframework.dbms.IDbmsSupport;
 import nl.nn.testtool.Inject;
 
 import org.apache.commons.lang.StringUtils;
@@ -71,7 +70,7 @@ public class DatabaseStorage implements LogStorage, CrudStorage {
 	protected @Setter List<String> bigValueColumns; // Columns for which to limit the number of retrieved characters to 100
 	protected @Setter long maxStorageSize = -1;
 	protected @Setter @Getter @Inject @Autowired JdbcTemplate jdbcTemplate;
-	protected @Setter @Getter @Inject @Autowired IDbmsSupport dbmsSupport;
+	protected @Setter @Getter @Inject @Autowired DbmsSupport dbmsSupport;
 	protected @Setter @Getter @Inject @Autowired MetadataExtractor metadataExtractor;
 	protected String lastExceptionMessage;
 

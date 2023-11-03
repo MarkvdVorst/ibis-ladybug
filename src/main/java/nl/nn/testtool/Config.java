@@ -21,6 +21,7 @@ import java.util.List;
 import javax.enterprise.inject.Produces;
 import javax.inject.Singleton;
 
+import nl.nn.testtool.storage.database.DbmsSupport;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -193,14 +194,8 @@ public class Config {
 	@Bean
 	@Scope("singleton")
 	@Lazy
-	JdbcTemplate jdbcTemplate() {
-		return new JdbcTemplate();
-	}
-	@Bean
-	@Scope("singleton")
-	@Lazy
-	nl.nn.adapterframework.dbms.IDbmsSupport dbmsSupport(JdbcTemplate jdbcTemplate) {
-		return new nl.nn.adapterframework.dbms.DbmsSupportFactory().getDbmsSupport(jdbcTemplate.getDataSource());
+	DbmsSupport dbmsSupport() {
+		return new DbmsSupport();
 	}
 
 	@Produces
