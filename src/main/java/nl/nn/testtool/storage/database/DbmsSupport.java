@@ -18,7 +18,7 @@ package nl.nn.testtool.storage.database;
 import java.sql.SQLException;
 
 import javax.annotation.PostConstruct;
-import javax.inject.Inject;
+import nl.nn.testtool.Inject;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
