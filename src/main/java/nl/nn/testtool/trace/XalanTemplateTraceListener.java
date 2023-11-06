@@ -1,7 +1,5 @@
 package nl.nn.testtool.trace;
 
-import nl.nn.testtool.trace.TemplateTrace;
-
 import org.apache.xalan.templates.Constants;
 import org.apache.xalan.templates.ElemTemplate;
 import org.apache.xalan.templates.ElemTemplateElement;
@@ -17,7 +15,7 @@ import javax.xml.transform.TransformerException;
 import java.io.File;
 import java.util.List;
 
-public class TemplateTraceListener implements TraceListener {
+public class XalanTemplateTraceListener implements TraceListener {
 
     List<TemplateTrace> m_templateTraceList;
 
@@ -41,7 +39,7 @@ public class TemplateTraceListener implements TraceListener {
      */
     public boolean m_traceSelection = false;
 
-    public TemplateTraceListener(List<TemplateTrace> templateTraceStack) {
+    public XalanTemplateTraceListener(List<TemplateTrace> templateTraceStack) {
         this.m_templateTraceList = templateTraceStack;
     }
 
