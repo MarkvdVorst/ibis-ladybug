@@ -39,8 +39,8 @@ public class XalanTemplateTraceListener implements TraceListener {
      */
     public boolean m_traceSelection = false;
 
-    public XalanTemplateTraceListener(List<TemplateTrace> templateTraceStack) {
-        this.m_templateTraceList = templateTraceStack;
+    public XalanTemplateTraceListener(List<TemplateTrace> templateTraceList) {
+        this.m_templateTraceList = templateTraceList;
     }
 
     @Override

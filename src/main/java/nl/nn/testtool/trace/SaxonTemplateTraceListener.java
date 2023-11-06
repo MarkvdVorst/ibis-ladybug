@@ -24,18 +24,29 @@ import net.sf.saxon.tree.util.FastStringBuffer;
 import net.sf.saxon.tree.util.Navigator;
 import net.sf.saxon.value.StringValue;
 import net.sf.saxon.value.Whitespace;
+import org.apache.xalan.templates.Constants;
+import org.apache.xalan.templates.ElemTemplate;
+import org.apache.xalan.templates.ElemTextLiteral;
 
+import java.io.File;
+import java.util.List;
 import java.util.Map;
 
 
 public class SaxonTemplateTraceListener extends StandardDiagnostics implements TraceListener {
+    List<TemplateTrace> m_templateTraceList;
     protected int indent = 0;
     private int detail = 2; // none=0; low=1; normal=2; high=3
     protected Logger out = new StandardLogger();
     /*@NotNull*/ private static StringBuffer spaceBuffer = new StringBuffer("                ");
 
+    public SaxonTemplateTraceListener(List<TemplateTrace> templateTraceList){
+        this.m_templateTraceList = templateTraceList;
+    }
+
     /**
      * Get the associated CodeInjector to be used at compile time to generate the tracing calls
+     *
      * @return returns trace injector
      */
     public CodeInjector getCodeInjector() {
@@ -44,6 +55,7 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
 
     /**
      * Set the level of detail required
+     *
      * @param level 0=none, 1=low (function and template calls), 2=normal (instructions), 3=high (expressions)
      */
 
@@ -53,6 +65,7 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
 
     /**
      * Called at start
+     *
      * @param controller controller of the transformer
      */
     @Override
@@ -63,7 +76,9 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
         indent++;
     }
 
-    /**@return string containing the xsl file*/
+    /**
+     * @return string containing the xsl file
+     */
     protected String getOpeningAttributes() {
         return "xmlns:xsl=\"" + NamespaceConstant.XSLT + '\"';
     }
@@ -79,54 +94,121 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
 
     /**
      * Called when an instruction in the stylesheet gets processed
-     * @param info information about the trace
+     *
+     * @param info       information about the trace
      * @param properties properties of the trace
-     * @param context given xpath context
+     * @param context    given xpath context
      */
     @Override
     public void enter(Traceable info, Map<String, Object> properties, XPathContext context) {
         if (isApplicable(info)) {
-            System.out.println("-----------------------------------------------");
-            System.out.println(context.getContextItem().getStringValue());
-            System.out.println("-----------------------------------------------");
-            Location loc = info.getLocation();
-            String tag = tag(info);
-            String file = abbreviateLocationURI(loc.getSystemId());
-            StringBuilder msg = new StringBuilder(spaces(indent) + '<' + tag);
-            for (Map.Entry<String, Object> entry : properties.entrySet()) {
-                Object val = entry.getValue();
-                if (val instanceof StructuredQName) {
-                    val = ((StructuredQName)val).getDisplayName();
-                } else if (val instanceof StringValue) {
-                    val = ((StringValue)val).getStringValue();
-                }
-                if (val != null) {
-                    msg.append(' ').append(entry.getKey()).append("=\"").append(escape(val.toString())).append('"');
-                }
-            }
-
-            msg.append(" line=\"").append(loc.getLineNumber()).append('"');
-
-            int col = loc.getColumnNumber();
-            if (col >= 0) {
-                msg.append(" column=\"").append(loc.getColumnNumber()).append('"');
-            }
-
-            msg.append(" module=\"").append(escape(file)).append('"');
-            msg.append(">");
-            out.info(msg.toString());
-            indent++;
+            trace(info, properties, context);
         }
+    }
+
+    private void trace(Traceable info, Map<String, Object> properties, XPathContext context) {
+        StringBuilder trace = new StringBuilder();
+        if (info instanceof Expression) {
+            Expression expr = (Expression) info;
+            if (expr instanceof FixedElement) {
+                String tag = "LRE";
+                trace.append(CreateTrace(info, tag, properties));
+                m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace.toString());
+            } else if (expr instanceof FixedAttribute) {
+                String tag = "ATTR";
+                trace.append(CreateTrace(info, tag, properties));
+                m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace.toString());
+            } else if (expr instanceof LetExpression) {
+                String tag = "xsl:variable";
+                trace.append(CreateTrace(info, tag, properties));
+                m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace.toString());
+            } else if (expr.isCallOn(Trace.class)) {
+                String tag = "fn:trace";
+                trace.append(CreateTrace(info, tag, properties));
+                m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace.toString());
+            } else {
+                trace.append(expr.getExpressionName());
+                m_templateTraceList.get(this.m_templateTraceList.size() - 1).AddChildTrace(trace.toString());
+            }
+        } else if (info instanceof UserFunction) {
+            String tag = "xsl:function";
+            trace.append(CreateTrace(info, tag, properties));
+            m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace.toString());
+        } else if (info instanceof TemplateRule) {
+            String tag = "xsl:template match=" + ((TemplateRule) info).getMatchPattern().getOriginalText();
+            trace.append(CreateTrace(info, tag, properties));
+            this.m_templateTraceList.add(new TemplateTrace(
+                    ((TemplateRule) info).getMatchPattern().getOriginalText(),
+                    ((TemplateRule) info).getSystemId(),
+                    tag
+            ));
+        } else if (info instanceof NamedTemplate) {
+            String tag = "xsl:template match=" + ((NamedTemplate) info).getTemplateName().getDisplayName();
+            trace.append(CreateTrace(info, tag, properties));
+            this.m_templateTraceList.add(new TemplateTrace(
+                    ((NamedTemplate) info).getTemplateName().getDisplayName(),
+                    ((NamedTemplate) info).getSystemId(),
+                    trace.toString()
+            ));
+        } else if (info instanceof GlobalParam) {
+            String tag = "xsl:param";
+            trace.append(CreateTrace(info, tag, properties));
+            m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace.toString());
+        } else if (info instanceof GlobalVariable) {
+            String tag = "xsl:variable";
+            trace.append(CreateTrace(info, tag, properties));
+            m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace.toString());
+        } else if (info instanceof Trace) {
+            String tag = "fn:trace";
+            trace.append(CreateTrace(info, tag, properties));
+            m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace.toString());
+        } else {
+            String tag = "misc";
+            trace.append(CreateTrace(info, tag, properties));
+            m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace.toString());
+        }
+    }
+
+    private String CreateTrace(Traceable info, String tag, Map<String, Object> properties){
+        Location loc = info.getLocation();
+        String file = abbreviateLocationURI(loc.getSystemId());
+        StringBuilder trace = new StringBuilder();
+        trace.append(spaces(indent)).append('<').append(tag);
+        for (Map.Entry<String, Object> entry : properties.entrySet()) {
+            Object val = entry.getValue();
+            if (val instanceof StructuredQName) {
+                val = ((StructuredQName) val).getDisplayName();
+            } else if (val instanceof StringValue) {
+                val = ((StringValue) val).getStringValue();
+            }
+            if (val != null) {
+                trace.append(' ').append(entry.getKey()).append("=\"").append(escape(val.toString())).append('"');
+            }
+        }
+
+        trace.append(" line=\"").append(loc.getLineNumber()).append('"');
+
+        int col = loc.getColumnNumber();
+        if (col >= 0) {
+            trace.append(" column=\"").append(loc.getColumnNumber()).append('"');
+        }
+
+        trace.append(" module=\"").append(escape(file)).append('"');
+        trace.append(">");
+        out.info(trace.toString());
+        indent++;
+
+        return trace.toString();
     }
 
     /**
      * Escape a string for XML output (in an attribute delimited by double quotes).
      * This method also collapses whitespace (since the value may be an XPath expression that
      * was originally written over several lines).
+     *
      * @param in input string
      * @return output string
      */
-
     public String escape(/*@Nullable*/ String in) {
         if (in == null) {
             return "";
@@ -156,65 +238,73 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
         return sb.toString();
     }
 
+//    /**
+//     * Called after an instruction of the stylesheet got processed
+//     *
+//     * @param info information about trace
+//     */
+//
+//    @Override
+//    public void leave(Traceable info) {
+//        if (isApplicable(info)) {
+//            String tag = tag(info);
+//            indent--;
+//            out.info(spaces(indent) + "</" + tag + '>');
+//        }
+//    }
+
     /**
-     * Called after an instruction of the stylesheet got processed
-     * @param info information about trace
+     * @param info shows traceable info
+     * @return bool to see if trace should be written to output stream
      */
-
-    @Override
-    public void leave(Traceable info) {
-        if (isApplicable(info)) {
-            String tag = tag(info);
-            indent--;
-            out.info(spaces(indent) + "</" + tag + '>');
-        }
-    }
-
-    /** @param  info shows traceable info
-     * @return bool to see if trace should be written to output stream*/
     protected boolean isApplicable(Traceable info) {
         return level(info) <= detail;
     }
 
-    /**@param info info of trace
-     * @return string that will be written to output stream*/
-    protected String tag(Traceable info){
-        if (info instanceof Expression) {
-            Expression expr = (Expression) info;
-            if (expr instanceof FixedElement) {
-                return "LRE";
-            } else if (expr instanceof FixedAttribute) {
-                return "ATTR";
-            } else if (expr instanceof LetExpression) {
-                return "xsl:variable";
-            } else if (expr.isCallOn(Trace.class)) {
-                return "fn:trace";
-            } else  {
-                return expr.getExpressionName();
-            }
-        } else if (info instanceof UserFunction){
-            return "xsl:function";
-        } else if (info instanceof TemplateRule) {
-            return "xsl:template match=" + ((TemplateRule) info).getMatchPattern().getOriginalText();
-        } else if (info instanceof NamedTemplate) {
-            return "xsl:template";
-        } else if (info instanceof GlobalParam) {
-            return "xsl:param";
-        } else if (info instanceof GlobalVariable) {
-            return "xsl:variable";
-        } else if (info instanceof Trace) {
-            return "fn:trace";
-        } else {
-            return "misc";
-        }
-    }
+//    /**
+//     * @param info info of trace
+//     * @return string that will be written to output stream
+//     */
+//    protected String tag(Traceable info) {
+//        if (info instanceof Expression) {
+//            Expression expr = (Expression) info;
+//            if (expr instanceof FixedElement) {
+//                return "LRE";
+//            } else if (expr instanceof FixedAttribute) {
+//                return "ATTR";
+//            } else if (expr instanceof LetExpression) {
+//                return "xsl:variable";
+//            } else if (expr.isCallOn(Trace.class)) {
+//                return "fn:trace";
+//            } else {
+//                return expr.getExpressionName();
+//            }
+//        } else if (info instanceof UserFunction) {
+//            return "xsl:function";
+//        } else if (info instanceof TemplateRule) {
+//            return "xsl:template match=" + ((TemplateRule) info).getMatchPattern().getOriginalText();
+//        } else if (info instanceof NamedTemplate) {
+//            return "xsl:template";
+//        } else if (info instanceof GlobalParam) {
+//            return "xsl:param";
+//        } else if (info instanceof GlobalVariable) {
+//            return "xsl:variable";
+//        } else if (info instanceof Trace) {
+//            return "fn:trace";
+//        } else {
+//            return "misc";
+//        }
+//    }
 
-    /**@param info information about the trace
-     * @return the level of detail that is allowed*/
+    /**
+     * @param info information about the trace
+     * @return the level of detail that is allowed
+     */
     protected int level(Traceable info) {
         if (info instanceof TraceableComponent) {
             return 1;
-        } if (info instanceof Instruction) {
+        }
+        if (info instanceof Instruction) {
             return 2;
         } else {
             return 3;
@@ -223,7 +313,9 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
 
     /**
      * Called when an item becomes the context item
-     * @param item information about given node*/
+     *
+     * @param item information about given node
+     */
     @Override
     public void startCurrentItem(Item item) {
         if (item instanceof TinyElementImpl && detail > 0) {
@@ -238,6 +330,7 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
 
     /**
      * Called after a node of the source tree got processed
+     *
      * @param item information about given node
      */
     @Override
@@ -252,6 +345,7 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
 
     /**
      * Get n spaces
+     *
      * @param n determines how much whitespace is to be added
      * @return returns a certain amount of whitespace
      */
@@ -276,6 +370,7 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
 
     /**
      * Get the output destination
+     *
      * @return output stream
      */
 
@@ -285,7 +380,8 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
 
     /**
      * Method called when a rule search has completed.
-     *  @param rule the rule (or possible built-in ruleset) that has been selected
+     *
+     * @param rule the rule (or possible built-in ruleset) that has been selected
      * @param mode the mode in operation
      * @param item the item that was checked against
      */
