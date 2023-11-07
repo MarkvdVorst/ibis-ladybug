@@ -17,7 +17,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public class XalanTemplateTraceListener implements TraceListener {
+public class XalanTemplateTraceListener implements TraceListener, LadybugTraceListener {
 
     @Getter
     private final List<TemplateTrace> templateTraces;
@@ -75,9 +75,9 @@ public class XalanTemplateTraceListener implements TraceListener {
 
                     //showing systemid once for file location
                     if(et.getSystemId() != null) {
-                        trace.append("\n").append("Now using: " + et.getSystemId());
+                        trace.append("Now using: " + et.getSystemId());
                     }else{
-                        trace.append("\n").append("Now using: built-in-rule");
+                        trace.append("Now using: built-in-rule");
                     }
 
                     //changed to just file name. reading the whole systemid everytime is hard to read

@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class SaxonTemplateTraceListener extends StandardDiagnostics implements TraceListener {
+public class SaxonTemplateTraceListener extends StandardDiagnostics implements TraceListener, LadybugTraceListener {
     @Getter
     private final List<TemplateTrace> templateTraces;
     protected int indent = 0;
@@ -255,7 +255,6 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
             TinyElementImpl curr = (TinyElementImpl) item;
             this.templateTraces.add(new TemplateTrace(
                     "<source node=\"" + Navigator.getPath(curr)
-                    + "\" line=\"" + curr.getLineNumber()
                     + "\" file=\"" + curr.getSystemId()
                     + "\">\n"));
         }
