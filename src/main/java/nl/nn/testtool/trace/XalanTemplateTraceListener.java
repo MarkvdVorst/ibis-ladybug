@@ -1,5 +1,6 @@
 package nl.nn.testtool.trace;
 
+import lombok.Getter;
 import org.apache.xalan.templates.Constants;
 import org.apache.xalan.templates.ElemTemplate;
 import org.apache.xalan.templates.ElemTemplateElement;
@@ -13,11 +14,13 @@ import org.w3c.dom.Node;
 import javax.xml.transform.SourceLocator;
 import javax.xml.transform.TransformerException;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 public class XalanTemplateTraceListener implements TraceListener {
 
-    List<TemplateTrace> m_templateTraceList;
+    @Getter
+    private final List<TemplateTrace> templateTraces;
 
     /**
      * This needs to be set to true if the listener is to print an event whenever a template is invoked.
@@ -39,8 +42,8 @@ public class XalanTemplateTraceListener implements TraceListener {
      */
     public boolean m_traceSelection = false;
 
-    public XalanTemplateTraceListener(List<TemplateTrace> templateTraceList) {
-        this.m_templateTraceList = templateTraceList;
+    public XalanTemplateTraceListener() {
+        this.templateTraces = new ArrayList<>();
     }
 
     @Override
@@ -63,7 +66,7 @@ public class XalanTemplateTraceListener implements TraceListener {
                     String chars = new String(etl.getChars(), 0, etl.getChars().length);
 
                     trace.append("\n").append("    ").append(chars.trim());
-                    m_templateTraceList.get(m_templateTraceList.size() - 1).AddChildTrace(trace.toString());
+                    templateTraces.get(templateTraces.size() - 1).AddChildTrace(trace.toString());
                 }
                 break;
             case Constants.ELEMNAME_TEMPLATE:
@@ -96,7 +99,7 @@ public class XalanTemplateTraceListener implements TraceListener {
                     }
 
                     trace.append("\n");
-                    m_templateTraceList.add(new TemplateTrace(et.getMatch().getPatternString(), et.getSystemId(), trace.toString()));
+                    templateTraces.add(new TemplateTrace(et.getMatch().getPatternString(), et.getSystemId(), trace.toString()));
                 }
                 break;
             default:
@@ -136,10 +139,10 @@ public class XalanTemplateTraceListener implements TraceListener {
                 trace.append("\n").append("Selected source node '").append(sourceNode.getNodeName()).append("', at "
                         //+ locator);
                 ).append(file.getName());
-                m_templateTraceList.get(m_templateTraceList.size() - 1).setSelectedNode(sourceNode.getNodeName());
+                templateTraces.get(templateTraces.size() - 1).setSelectedNode(sourceNode.getNodeName());
             } else {
                 trace.append("\n").append("Selected source node '").append(sourceNode.getNodeName()).append("'");
-                m_templateTraceList.get(m_templateTraceList.size() - 1).setSelectedNode(sourceNode.getNodeName());
+                templateTraces.get(templateTraces.size() - 1).setSelectedNode(sourceNode.getNodeName());
             }
 
             if (ev.m_styleNode.getLineNumber() == 0) {
@@ -216,7 +219,7 @@ public class XalanTemplateTraceListener implements TraceListener {
                 trace.append("\n").append(ev.m_selection.str());
             }
 
-            m_templateTraceList.get(m_templateTraceList.size() - 1).AddChildTrace(trace.toString());
+            templateTraces.get(templateTraces.size() - 1).AddChildTrace(trace.toString());
         }
     }
 
@@ -262,7 +265,7 @@ public class XalanTemplateTraceListener implements TraceListener {
                     trace.append("\n").append("IGNORABLEWHITESPACE");
                     break;
             }
-            m_templateTraceList.get(m_templateTraceList.size() - 1).AddChildTrace(trace.toString());
+            templateTraces.get(templateTraces.size() - 1).AddChildTrace(trace.toString());
         }
     }
 }
