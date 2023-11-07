@@ -24,6 +24,7 @@ import net.sf.saxon.tree.util.FastStringBuffer;
 import net.sf.saxon.tree.util.Navigator;
 import net.sf.saxon.value.StringValue;
 import net.sf.saxon.value.Whitespace;
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.xalan.templates.Constants;
 import org.apache.xalan.templates.ElemTemplate;
 import org.apache.xalan.templates.ElemTextLiteral;
@@ -36,31 +37,11 @@ import java.util.Map;
 public class SaxonTemplateTraceListener extends StandardDiagnostics implements TraceListener {
     List<TemplateTrace> m_templateTraceList;
     protected int indent = 0;
-    private int detail = 2; // none=0; low=1; normal=2; high=3
-    protected Logger out = new StandardLogger();
+    private final int detail = 3; // none=0; low=1; normal=2; high=3
     /*@NotNull*/ private static StringBuffer spaceBuffer = new StringBuffer("                ");
 
     public SaxonTemplateTraceListener(List<TemplateTrace> templateTraceList){
         this.m_templateTraceList = templateTraceList;
-    }
-
-    /**
-     * Get the associated CodeInjector to be used at compile time to generate the tracing calls
-     *
-     * @return returns trace injector
-     */
-    public CodeInjector getCodeInjector() {
-        return new TraceCodeInjector();
-    }
-
-    /**
-     * Set the level of detail required
-     *
-     * @param level 0=none, 1=low (function and template calls), 2=normal (instructions), 3=high (expressions)
-     */
-
-    public void setLevelOfDetail(int level) {
-        this.detail = level;
     }
 
     /**
@@ -70,15 +51,11 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
      */
     @Override
     public void open(Controller controller) {
-        out.info("<trace " +
+        this.m_templateTraceList.add(new TemplateTrace("<trace " +
                 "saxon-version=\"" + Version.getProductVersion() + "\" " +
-                getOpeningAttributes() + '>');
-        indent++;
+                getOpeningAttributes() + ">\n"));
     }
 
-    /**
-     * @return string containing the xsl file
-     */
     protected String getOpeningAttributes() {
         return "xmlns:xsl=\"" + NamespaceConstant.XSLT + '\"';
     }
@@ -89,7 +66,7 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
     @Override
     public void close() {
         indent--;
-        out.info("</trace>");
+        m_templateTraceList.get(0).AddChildTrace("</trace>");
     }
 
     /**
@@ -112,68 +89,67 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
             Expression expr = (Expression) info;
             if (expr instanceof FixedElement) {
                 String tag = "LRE";
-                trace.append(CreateTrace(info, tag, properties));
-                m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace.toString());
+                trace.append(CreateTrace(info, tag, properties, true));
+                m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace + "\n");
             } else if (expr instanceof FixedAttribute) {
                 String tag = "ATTR";
-                trace.append(CreateTrace(info, tag, properties));
-                m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace.toString());
+                trace.append(CreateTrace(info, tag, properties, true));
+                m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace + "\n");
             } else if (expr instanceof LetExpression) {
                 String tag = "xsl:variable";
-                trace.append(CreateTrace(info, tag, properties));
-                m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace.toString());
+                trace.append(CreateTrace(info, tag, properties, true));
+                m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace + "\n");
             } else if (expr.isCallOn(Trace.class)) {
                 String tag = "fn:trace";
-                trace.append(CreateTrace(info, tag, properties));
-                m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace.toString());
+                trace.append(CreateTrace(info, tag, properties, true));
+                m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace + "\n");
             } else {
                 trace.append(expr.getExpressionName());
-                m_templateTraceList.get(this.m_templateTraceList.size() - 1).AddChildTrace(trace.toString());
+                m_templateTraceList.get(this.m_templateTraceList.size() - 1).AddChildTrace(trace + "\n");
             }
         } else if (info instanceof UserFunction) {
             String tag = "xsl:function";
-            trace.append(CreateTrace(info, tag, properties));
-            m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace.toString());
+            trace.append(CreateTrace(info, tag, properties, true));
+            m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace + "\n");
         } else if (info instanceof TemplateRule) {
             String tag = "xsl:template match=" + ((TemplateRule) info).getMatchPattern().getOriginalText();
-            trace.append(CreateTrace(info, tag, properties));
-            this.m_templateTraceList.add(new TemplateTrace(
-                    ((TemplateRule) info).getMatchPattern().getOriginalText(),
-                    ((TemplateRule) info).getSystemId(),
-                    tag
-            ));
+            trace.append(CreateTrace(info, tag, properties, false));
+            m_templateTraceList.get(m_templateTraceList.size() - 1).AddChildTrace(trace + "\n");
+            m_templateTraceList.get(m_templateTraceList.size() - 1).setTemplateName(((TemplateRule) info).getMatchPattern().getOriginalText());
+            m_templateTraceList.get(m_templateTraceList.size()- 1).setSystemId(((TemplateRule) info).getSystemId());
         } else if (info instanceof NamedTemplate) {
             String tag = "xsl:template match=" + ((NamedTemplate) info).getTemplateName().getDisplayName();
-            trace.append(CreateTrace(info, tag, properties));
-            this.m_templateTraceList.add(new TemplateTrace(
-                    ((NamedTemplate) info).getTemplateName().getDisplayName(),
-                    ((NamedTemplate) info).getSystemId(),
-                    trace.toString()
-            ));
+            trace.append(CreateTrace(info, tag, properties, false));
+            m_templateTraceList.get(m_templateTraceList.size() - 1).AddChildTrace(trace + "\n");
+            m_templateTraceList.get(m_templateTraceList.size() - 1).setTemplateName(((NamedTemplate) info).getTemplateName().getDisplayName());
+            m_templateTraceList.get(m_templateTraceList.size()- 1).setSystemId(((NamedTemplate) info).getSystemId());
         } else if (info instanceof GlobalParam) {
             String tag = "xsl:param";
-            trace.append(CreateTrace(info, tag, properties));
-            m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace.toString());
+            trace.append(CreateTrace(info, tag, properties, true));
+            m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace + "\n");
         } else if (info instanceof GlobalVariable) {
             String tag = "xsl:variable";
-            trace.append(CreateTrace(info, tag, properties));
-            m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace.toString());
+            trace.append(CreateTrace(info, tag, properties, true));
+            m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace + "\n");
         } else if (info instanceof Trace) {
             String tag = "fn:trace";
-            trace.append(CreateTrace(info, tag, properties));
-            m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace.toString());
+            trace.append(CreateTrace(info, tag, properties, true));
+            m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace + "\n");
         } else {
             String tag = "misc";
-            trace.append(CreateTrace(info, tag, properties));
-            m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace.toString());
+            trace.append(CreateTrace(info, tag, properties, true));
+            m_templateTraceList.get(m_templateTraceList.size() -1).AddChildTrace(trace + "\n");
         }
     }
 
-    private String CreateTrace(Traceable info, String tag, Map<String, Object> properties){
+    private String CreateTrace(Traceable info, String tag, Map<String, Object> properties, boolean useIndents){
         Location loc = info.getLocation();
         String file = abbreviateLocationURI(loc.getSystemId());
         StringBuilder trace = new StringBuilder();
-        trace.append(spaces(indent)).append('<').append(tag);
+        if(useIndents){
+            trace.append(spaces(indent));
+        }
+        trace.append('<').append(tag).append(" ");
         for (Map.Entry<String, Object> entry : properties.entrySet()) {
             Object val = entry.getValue();
             if (val instanceof StructuredQName) {
@@ -195,7 +171,6 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
 
         trace.append(" module=\"").append(escape(file)).append('"');
         trace.append(">");
-        out.info(trace.toString());
         indent++;
 
         return trace.toString();
@@ -238,20 +213,18 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
         return sb.toString();
     }
 
-//    /**
-//     * Called after an instruction of the stylesheet got processed
-//     *
-//     * @param info information about trace
-//     */
-//
-//    @Override
-//    public void leave(Traceable info) {
-//        if (isApplicable(info)) {
-//            String tag = tag(info);
-//            indent--;
-//            out.info(spaces(indent) + "</" + tag + '>');
-//        }
-//    }
+    /**
+     * Called after an instruction of the stylesheet got processed
+     *
+     * @param info information about trace
+     */
+
+    @Override
+    public void leave(Traceable info) {
+        if (isApplicable(info)) {
+            indent--;
+        }
+    }
 
     /**
      * @param info shows traceable info
@@ -260,41 +233,6 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
     protected boolean isApplicable(Traceable info) {
         return level(info) <= detail;
     }
-
-//    /**
-//     * @param info info of trace
-//     * @return string that will be written to output stream
-//     */
-//    protected String tag(Traceable info) {
-//        if (info instanceof Expression) {
-//            Expression expr = (Expression) info;
-//            if (expr instanceof FixedElement) {
-//                return "LRE";
-//            } else if (expr instanceof FixedAttribute) {
-//                return "ATTR";
-//            } else if (expr instanceof LetExpression) {
-//                return "xsl:variable";
-//            } else if (expr.isCallOn(Trace.class)) {
-//                return "fn:trace";
-//            } else {
-//                return expr.getExpressionName();
-//            }
-//        } else if (info instanceof UserFunction) {
-//            return "xsl:function";
-//        } else if (info instanceof TemplateRule) {
-//            return "xsl:template match=" + ((TemplateRule) info).getMatchPattern().getOriginalText();
-//        } else if (info instanceof NamedTemplate) {
-//            return "xsl:template";
-//        } else if (info instanceof GlobalParam) {
-//            return "xsl:param";
-//        } else if (info instanceof GlobalVariable) {
-//            return "xsl:variable";
-//        } else if (info instanceof Trace) {
-//            return "fn:trace";
-//        } else {
-//            return "misc";
-//        }
-//    }
 
     /**
      * @param info information about the trace
@@ -320,10 +258,11 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
     public void startCurrentItem(Item item) {
         if (item instanceof TinyElementImpl && detail > 0) {
             TinyElementImpl curr = (TinyElementImpl) item;
-            out.info(spaces(indent) + "<source node=\"" + Navigator.getPath(curr)
+            this.m_templateTraceList.add(new TemplateTrace(
+                    "<source node=\"" + Navigator.getPath(curr)
                     + "\" line=\"" + curr.getLineNumber()
-                    + "\" file=\"" + abbreviateLocationURI(curr.getSystemId())
-                    + "\">");
+                    + "\" file=\"" + curr.getSystemId()
+                    + "\">\n"));
         }
         indent++;
     }
@@ -338,7 +277,7 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
         indent--;
         if (item instanceof NodeInfo && detail > 0) {
             NodeInfo curr = (NodeInfo) item;
-            out.info(spaces(indent) + "</source><!-- " +
+            m_templateTraceList.get(m_templateTraceList.size() - 1).AddChildTrace("</source><!-- " +
                     Navigator.getPath(curr) + " -->");
         }
     }
@@ -358,43 +297,23 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
     }
 
     /**
-     * Set the output destination (default is System.err)
+     * This method is deprecated
      *
-     * @param stream the output destination for tracing output
+     * @param stream does not do anything
      */
-
     @Override
+    @Deprecated
     public void setOutputDestination(Logger stream) {
-        out = stream;
+        throw new NotImplementedException("This method should not be used");
     }
 
     /**
-     * Get the output destination
+     * This method is deprecated
      *
-     * @return output stream
+     * @return nothing
      */
-
+    @Deprecated
     public Logger getOutputDestination() {
-        return out;
-    }
-
-    /**
-     * Method called when a rule search has completed.
-     *
-     * @param rule the rule (or possible built-in ruleset) that has been selected
-     * @param mode the mode in operation
-     * @param item the item that was checked against
-     */
-    @Override
-    public void endRuleSearch(Object rule, Mode mode, Item item) {
-        // do nothing
-    }
-
-    /**
-     * Method called when a search for a template rule is about to start
-     */
-    @Override
-    public void startRuleSearch() {
-        // do nothing
+        throw new NotImplementedException("This method should not be used");
     }
 }

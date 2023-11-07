@@ -1,44 +1,41 @@
 package nl.nn.testtool.trace;
 
+import lombok.Getter;
+import lombok.Setter;
+
 import java.util.ArrayList;
 import java.util.List;
 
 public class TemplateTrace {
-    private final String _templateName;
-    private final String _parentTrace;
-    private final String _systemId;
+    @Getter
+    @Setter
+    private String templateName;
+    @Getter
+    @Setter
+    private String parentTrace;
+    @Getter
+    @Setter
+    private String systemId;
+    @Getter
     private String selectedNode;
+    @Getter
     private List<String> childrenTraces;
 
     public TemplateTrace(String templateName, String systemId, String parentTrace) {
-        this._templateName = templateName;
-        this._parentTrace = parentTrace;
-        this._systemId = systemId;
+        this.templateName = templateName;
+        this.parentTrace = parentTrace;
+        this.systemId = systemId;
+        this.childrenTraces = new ArrayList<>();
+    }
+
+    public TemplateTrace(String parentTrace){
+        this.parentTrace = parentTrace;
         this.childrenTraces = new ArrayList<>();
     }
 
     /**@param nodeName selected node for the trace*/
     public void setSelectedNode(String nodeName){
         this.selectedNode = nodeName;
-    }
-
-    /**@return returns the selected node of this trace*/
-    public String getSelectedNode(){
-        return selectedNode;
-    }
-
-    /**@return Gets the systemId of the template*/
-    public String getTemplateName(){
-        return _templateName;
-    }
-
-    public String getSystemId() {
-        return this._systemId;
-    }
-
-    /**@return Gets the entire first trace that mentions the template location and the match for it*/
-    public String getParentTrace() {
-        return _parentTrace;
     }
 
     /**This method adds a trace to the children traces of the parent template trace
@@ -53,11 +50,6 @@ public class TemplateTrace {
         return childrenTraces.get(index);
     }
 
-    /**@return returns all children traces*/
-    public List<String> getAllChildTraces() {
-        return childrenTraces;
-    }
-
     /**Empties the child traces for this template trace*/
     public void Flush() {
         childrenTraces = new ArrayList<>();
@@ -69,9 +61,9 @@ public class TemplateTrace {
         StringBuilder result = new StringBuilder();
 
         if(showSeperator) {
-            result.append("--------------------------------------------New template being applied--------------------------------------------");
+            result.append("--------------------------------------------New template being applied--------------------------------------------\n");
         }
-        result.append(_parentTrace);
+        result.append(parentTrace);
 
         for (String childrenTrace : childrenTraces) {
             result.append(childrenTrace);
