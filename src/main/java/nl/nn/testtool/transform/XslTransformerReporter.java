@@ -8,6 +8,7 @@ import org.xml.sax.SAXException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.*;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -73,7 +74,7 @@ public class XslTransformerReporter {
 
             doc.getDocumentElement().normalize();
             // Get a list of all 'import' nodes
-            NodeList nodeList = doc.getElementsByTagName("xsl:import");
+            NodeList nodeList = getNodesByXPath("//*[local-name()='import']", doc);
             // Check if nodeList is populated
             if (nodeList.getLength() > 0) {
                 testTool.startpoint(correlationId, xslFile.getName(), "Imported XSL", "Imported XSL files");
@@ -139,7 +140,8 @@ public class XslTransformerReporter {
         }
     }
 
-    private void PrintXSLOfTemplate(String correlationId, String templateName) throws ParserConfigurationException, IOException, SAXException {
+    private void PrintXSLOfTemplate(String correlationId, String templateName) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException {
+
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document doc;
@@ -147,7 +149,7 @@ public class XslTransformerReporter {
             boolean wasFound = false;
             doc = builder.parse(file);
             doc.getDocumentElement().normalize();
-            NodeList nodeList = doc.getElementsByTagName("xsl:template");
+            NodeList nodeList = getNodesByXPath("//*[local-name()='template']", doc);
             StringWriter result = new StringWriter();
             for (int i = 0; i < nodeList.getLength(); i++) {
                 Element element = (Element) nodeList.item(i);
@@ -218,4 +220,12 @@ public class XslTransformerReporter {
             result.append("</").append(node.getNodeName()).append(">");
         }
     }
+
+    private NodeList getNodesByXPath(String xPathExpression, Document doc) throws XPathExpressionException {
+        XPath xpath = XPathFactory.newInstance().newXPath();
+        XPathExpression expression = xpath.compile(xPathExpression);
+        NodeList nodeList = (NodeList) expression.evaluate( doc.getDocumentElement(), XPathConstants.NODESET);
+        return nodeList;
+    }
+
 }

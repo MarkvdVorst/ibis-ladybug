@@ -4,6 +4,7 @@
 /.classpath
 /.settings
 /skip-replace-inject.txt
+/.idea/
 /.idea/compiler.xml
 /.idea/encodings.xml
 /.idea/jarRepositories.xml
