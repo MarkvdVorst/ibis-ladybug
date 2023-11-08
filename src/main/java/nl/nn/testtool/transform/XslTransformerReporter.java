@@ -68,39 +68,49 @@ public class XslTransformerReporter {
     //TODO refactor into multiple methods according to Single Responsibility (at least separate 'reader' and 'writer')
     private void PrintAllImportedXSL(String correlationId) {
         try {
-            DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-            Document doc = documentBuilder.parse(xslFile);
-
-            doc.getDocumentElement().normalize();
-            // Get a list of all 'import' nodes
-            NodeList nodeList = getNodesByXPath("//*[local-name()='import']", doc);
-            // Check if nodeList is populated
-            if (nodeList.getLength() > 0) {
-                testTool.startpoint(correlationId, xslFile.getName(), "Imported XSL", "Imported XSL files");
-                // Loop over all the 'import' nodes (each node references 1 XSL file)
-                for (int i = 0; i < nodeList.getLength(); i++) {
-                    // Get the import element from current import node
-                    Element element = (Element) nodeList.item(i);
-                    // Grab the file path from the 'href' attribute
-                    String importPath = element.getAttribute("href");
-                    Path xslFilePath = Paths.get(importPath);
-                    // Get the XSL file's name using the given path
-                    String fileName = xslFilePath.getFileName().toString();
-
-                    // Add the imported XSL file to global variable
-                    this.allXSLFiles.add(xslFilePath.toFile());
-
-                    // Read all the lines in the imported XSL file to a List and write them into the report one by one
-                    List<String> xslList = Files.readAllLines(xslFilePath);
-                    StringWriter writer = new StringWriter();
-                    for (String xsl : xslList) {
-                        writer.append(xsl).append("\n");
-                    }
-                    testTool.infopoint(correlationId, xslFile.getName(), fileName, writer.toString());
-                }
-                testTool.endpoint(correlationId, xslFile.getName(), "Imported XSL", "Imported XSL files");
+            Document doc = BuildDocument(xslFile);
+            if(!ImportNodesPresent(doc)) {
+                return;
             }
+            NodeList nodeList = GetNodesByXPath("//*[local-name()='import']",doc);
+            testTool.startpoint(correlationId, xslFile.getName(), "Imported XSL", "Imported XSL files");
+            // Loop over all the 'import' nodes (each node references 1 XSL file)
+            for (int i = 0; i < nodeList.getLength(); i++) {
+                // Get the import element from current import node
+                Element element = (Element) nodeList.item(i);
+                // Grab the file path from the 'href' attribute
+                String importPath = element.getAttribute("href");
+                Path xslFilePath = Paths.get(importPath);
+                // Get the XSL file's name using the given path
+                String fileName = xslFilePath.getFileName().toString();
+
+                // Add the imported XSL file to global variable
+                this.allXSLFiles.add(xslFilePath.toFile());
+
+                // Read all the lines in the imported XSL file to a List and write them into the report one by one
+                List<String> xslList = Files.readAllLines(xslFilePath);
+                StringWriter writer = new StringWriter();
+                for (String xsl : xslList) {
+                    writer.append(xsl).append("\n");
+                }
+                testTool.infopoint(correlationId, xslFile.getName(), fileName, writer.toString());
+            }
+            testTool.endpoint(correlationId, xslFile.getName(), "Imported XSL", "Imported XSL files");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private boolean ImportNodesPresent(Document doc) {
+        try {
+            // Get a list of all 'import' nodes
+            NodeList nodeList = GetNodesByXPath("//*[local-name()='import']", doc);
+            // Check if nodeList is populated
+            if (nodeList.getLength() == 0) {
+                return false;
+            }
+            return true;
+
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -115,7 +125,6 @@ public class XslTransformerReporter {
         for (TemplateTrace templateTrace : templateTraceList) {
             result.append(templateTrace.getWholeTrace(true)).append("\n");
         }
-
         testTool.infopoint(correlationId, xslFile.getName(), "Complete XSLT Trace", result.toString());
     }
 
@@ -149,7 +158,7 @@ public class XslTransformerReporter {
             boolean wasFound = false;
             doc = builder.parse(file);
             doc.getDocumentElement().normalize();
-            NodeList nodeList = getNodesByXPath("//*[local-name()='template']", doc);
+            NodeList nodeList = GetNodesByXPath("//*[local-name()='template']", doc);
             StringWriter result = new StringWriter();
             for (int i = 0; i < nodeList.getLength(); i++) {
                 Element element = (Element) nodeList.item(i);
@@ -221,11 +230,18 @@ public class XslTransformerReporter {
         }
     }
 
-    private NodeList getNodesByXPath(String xPathExpression, Document doc) throws XPathExpressionException {
+    private NodeList GetNodesByXPath(String xPathExpression, Document doc) throws XPathExpressionException {
         XPath xpath = XPathFactory.newInstance().newXPath();
         XPathExpression expression = xpath.compile(xPathExpression);
-        NodeList nodeList = (NodeList) expression.evaluate( doc.getDocumentElement(), XPathConstants.NODESET);
-        return nodeList;
+        return (NodeList) expression.evaluate(doc.getDocumentElement(), XPathConstants.NODESET);
+    }
+
+    private Document BuildDocument(File file) throws ParserConfigurationException, IOException, SAXException {
+        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
+        DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
+        Document doc = documentBuilder.parse(file);
+        doc.getDocumentElement().normalize();
+        return doc;
     }
 
 }
