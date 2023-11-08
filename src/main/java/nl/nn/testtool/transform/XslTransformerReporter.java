@@ -68,11 +68,11 @@ public class XslTransformerReporter {
     //TODO refactor into multiple methods according to Single Responsibility (at least separate 'reader' and 'writer')
     private void PrintAllImportedXSL(String correlationId) {
         try {
-            Document doc = BuildDocument(xslFile);
-            if(!ImportNodesPresent(doc)) {
+            Document xslDocument = BuildDocument(xslFile);
+            if(!ImportNodesPresent(xslDocument)) {
                 return;
             }
-            NodeList nodeList = GetNodesByXPath("//*[local-name()='import']",doc);
+            NodeList nodeList = GetNodesByXPath("//*[local-name()='import']",xslDocument);
             testTool.startpoint(correlationId, xslFile.getName(), "Imported XSL", "Imported XSL files");
             // Loop over all the 'import' nodes (each node references 1 XSL file)
             for (int i = 0; i < nodeList.getLength(); i++) {
@@ -133,11 +133,13 @@ public class XslTransformerReporter {
     * */
     private void LoopThroughAllTemplates(String correlationId) {
         try {
+
             for (TemplateTrace templateTrace : templateTraceList) {
+//                System.out.println(templateTrace.getSelectedNode());
                 if(templateTrace.getSelectedNode() == null) {
-                    testTool.startpoint(correlationId, null, "xsl:template match=" + templateTrace.getTemplateName(), templateTrace.getWholeTrace(false));
+                    testTool.startpoint(correlationId, null, "template match=" + templateTrace.getTemplateName(), templateTrace.getWholeTrace(false));
                     PrintXSLOfTemplate(correlationId, templateTrace.getTemplateName());
-                    testTool.endpoint(correlationId, null, "xsl:template match=" + templateTrace.getTemplateName(), templateTrace.getWholeTrace(false));
+                    testTool.endpoint(correlationId, null, "template match=" + templateTrace.getTemplateName(), templateTrace.getWholeTrace(false));
                 } else {
                     testTool.startpoint(correlationId, null, "built-in-rule match=" + templateTrace.getTemplateName() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
                     PrintXSLOfTemplate(correlationId, templateTrace.getTemplateName());
@@ -170,9 +172,9 @@ public class XslTransformerReporter {
                     result.append(stringBuilder).append("\n");
                 }
             }
-            if (wasFound) {
-                testTool.infopoint(correlationId, null, file.getName(), result.toString());
-            }
+            if (!wasFound) continue;
+
+            testTool.infopoint(correlationId, null, file.getName(), result.toString());
         }
     }
 
