@@ -17,7 +17,7 @@ package nl.nn.testtool.storage.proofofmigration;
 
 import java.util.List;
 
-import javax.inject.Inject;
+import nl.nn.testtool.Inject;
 
 import org.springframework.beans.factory.annotation.Autowired;
 

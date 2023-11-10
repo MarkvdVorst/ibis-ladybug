@@ -30,7 +30,8 @@ import java.util.GregorianCalendar;
 import java.util.List;
 
 import javax.annotation.PostConstruct;
-import javax.inject.Inject;
+
+import nl.nn.testtool.Inject;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;

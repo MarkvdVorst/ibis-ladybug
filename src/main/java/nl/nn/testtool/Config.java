@@ -21,6 +21,7 @@ import java.util.List;
 import javax.enterprise.inject.Produces;
 import javax.inject.Singleton;
 
+import nl.nn.testtool.storage.database.DbmsSupport;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Lazy;
@@ -37,13 +38,13 @@ import nl.nn.testtool.filter.Views;
 import nl.nn.testtool.metadata.StatusMetadataFieldExtractor;
 import nl.nn.testtool.storage.CrudStorage;
 import nl.nn.testtool.storage.LogStorage;
-import nl.nn.testtool.storage.database.DbmsSupport;
 import nl.nn.testtool.storage.memory.Storage;
 import nl.nn.testtool.storage.proofofmigration.ProofOfMigrationErrorsStorage;
 import nl.nn.testtool.storage.proofofmigration.ProofOfMigrationErrorsView;
 import nl.nn.testtool.storage.proofofmigration.ProofOfMigrationStorage;
 import nl.nn.testtool.storage.proofofmigration.ProofOfMigrationView;
 import nl.nn.testtool.transform.ReportXmlTransformer;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * <p>
@@ -190,6 +191,13 @@ public class Config {
 		return metadataNames;
 	}
 
+	@Bean
+	@Scope("singleton")
+	@Lazy
+	DbmsSupport dbmsSupport() {
+		return new DbmsSupport();
+	}
+
 	@Produces
 	@Singleton
 	@DefaultBean
@@ -218,12 +226,6 @@ public class Config {
 		return "ladybug/default.xslt";
 	}
 
-	@Bean
-	@Scope("singleton")
-	@Lazy
-	DbmsSupport dbmsSupport() {
-		return new DbmsSupport();
-	}
 
 	@Bean
 	@Scope("prototype")

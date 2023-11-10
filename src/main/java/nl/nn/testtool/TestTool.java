@@ -26,7 +26,7 @@ import java.util.Set;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import nl.nn.testtool.Inject;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
