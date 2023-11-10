@@ -17,7 +17,7 @@ package nl.nn.testtool.echo2;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.Dependent;
-import javax.inject.Inject;
+import nl.nn.testtool.Inject;
 
 import org.springframework.beans.factory.annotation.Autowired;
 

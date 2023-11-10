@@ -962,6 +962,7 @@ public class Report implements Serializable {
 				xml = globalReportXmlTransformer.transform(xml);
 			}
 		}
+		xml += "wut";
 		return xml;
 	}
 

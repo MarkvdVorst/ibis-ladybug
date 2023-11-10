@@ -18,7 +18,7 @@ package nl.nn.testtool.storage.database;
 import java.sql.SQLException;
 
 import javax.annotation.PostConstruct;
-import javax.inject.Inject;
+import nl.nn.testtool.Inject;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -40,44 +40,44 @@ See that most databaseProductName values are returned as-is as commonDatabaseNam
 */
 // @Singleton disabled for Quarkus for now because of the use of JdbcTemplate
 public class DbmsSupport {
-	private @Setter @Inject @Autowired JdbcTemplate jdbcTemplate;
-	private String commonDatabaseName;
+    private @Setter @Inject @Autowired JdbcTemplate jdbcTemplate;
+    private String commonDatabaseName;
 
-	@PostConstruct
-	public void init() throws SQLException, MetaDataAccessException {
-		String databaseProductName = JdbcUtils.extractDatabaseMetaData(jdbcTemplate.getDataSource(), (dbmd) -> dbmd.getDatabaseProductName());
-		commonDatabaseName = JdbcUtils.commonDatabaseName(databaseProductName);
-	}
+    @PostConstruct
+    public void init() throws SQLException, MetaDataAccessException {
+        String databaseProductName = JdbcUtils.extractDatabaseMetaData(jdbcTemplate.getDataSource(), (dbmd) -> dbmd.getDatabaseProductName());
+        commonDatabaseName = JdbcUtils.commonDatabaseName(databaseProductName);
+    }
 
-	public String provideFirstRowsHintAfterFirstKeyword(int rowCount) {
-		String sql = "";
-		if ("Oracle".equals(commonDatabaseName)) {
-			sql += " /*+ first_rows( " + rowCount + " ) */";
-		} else if ("Microsoft SQL Server".equals(commonDatabaseName)) {
-			sql += " top( "+rowCount+" )";
-		}
-		return sql;
-	}
+    public String provideFirstRowsHintAfterFirstKeyword(int rowCount) {
+        String sql = "";
+        if ("Oracle".equals(commonDatabaseName)) {
+            sql += " /*+ first_rows( " + rowCount + " ) */";
+        } else if ("Microsoft SQL Server".equals(commonDatabaseName)) {
+            sql += " top( "+rowCount+" )";
+        }
+        return sql;
+    }
 
-	public String provideTrailingFirstRowsHint(int rowCount) {
-		String sql = "";
-		if (rowCount > -1) {
-			if (!"Oracle".equals(commonDatabaseName) && !"Microsoft SQL Server".equals(commonDatabaseName)) {
-				sql += " limit " + rowCount;
-			}
-		}
-		return sql;
-	}
+    public String provideTrailingFirstRowsHint(int rowCount) {
+        String sql = "";
+        if (rowCount > -1) {
+            if (!"Oracle".equals(commonDatabaseName) && !"Microsoft SQL Server".equals(commonDatabaseName)) {
+                sql += " limit " + rowCount;
+            }
+        }
+        return sql;
+    }
 
-	public String getRowNumber(String order, String sort) {
-		if ("Oracle".equals(commonDatabaseName) || "Microsoft SQL Server".equals(commonDatabaseName)) {
-			return "row_number() over (order by "+order+(sort==null?"":" "+sort)+") "+getRowNumberShortName();
-		}
-		return "";
-	}
+    public String getRowNumber(String order, String sort) {
+        if ("Oracle".equals(commonDatabaseName) || "Microsoft SQL Server".equals(commonDatabaseName)) {
+            return "row_number() over (order by "+order+(sort==null?"":" "+sort)+") "+getRowNumberShortName();
+        }
+        return "";
+    }
 
-	public String getRowNumberShortName() {
-		return "rn";
-	}
+    public String getRowNumberShortName() {
+        return "rn";
+    }
 
 }
