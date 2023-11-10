@@ -57,7 +57,7 @@ public class XslTransformerReporter {
         XslTransformerReporter reporter = new XslTransformerReporter(testTool, xmlFile, xslFile, templateTraceList, xsltResult, correlationId, reportName);
         testTool.startpoint(correlationId, null, reportName, "XSLT Trace");
         reporter.Start();
-        testTool.endpoint(correlationId, null, reportName, "XSLT Trace")
+        testTool.endpoint(correlationId, null, reportName, "XSLT Trace");
     }
 
     private void Start() {
