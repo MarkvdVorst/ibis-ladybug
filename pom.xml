@@ -473,12 +473,6 @@
 
   <profiles>
     <profile>
-      <id>skipTests</id>
-      <properties>
-        <skipTests>true</skipTests>
-      </properties>
-    </profile>
-    <profile>
       <id>skip-replace-inject</id>
       <activation>
         <file>
