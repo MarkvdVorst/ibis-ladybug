@@ -38,8 +38,10 @@ public class XslTransformerReporter {
     private final String xsltResult;
     private final List<TemplateTrace> templateTraceList;
     private List<File> allXSLFiles;
+    private final String correlationId;
+    private final String reportname;
 
-    public XslTransformerReporter(TestTool testTool, File xmlFile, File xslFile, List<TemplateTrace> templateTraceStack, String xsltResult) {
+    public XslTransformerReporter(TestTool testTool, File xmlFile, File xslFile, List<TemplateTrace> templateTraceStack, String xsltResult, String correlationId, String reportName) {
         //TODO: gebruik files
         this.testTool = testTool;
         this.xmlFile = xmlFile;
@@ -47,10 +49,18 @@ public class XslTransformerReporter {
         this.templateTraceList = templateTraceStack;
         this.xsltResult = xsltResult;
         this.allXSLFiles = new ArrayList<>();
-        this.allXSLFiles.add(xslFile);
+        this.correlationId = correlationId;
+        this.reportname = reportName;
     }
 
-    public void Start(String correlationId, String reportName) {
+    public static void initiate(TestTool testTool, File xmlFile, File xslFile, List<TemplateTrace> templateTraceList, String xsltResult, String correlationId, String reportName){
+        XslTransformerReporter reporter = new XslTransformerReporter(testTool, xmlFile, xslFile, templateTraceList, xsltResult, correlationId, reportName);
+        testTool.startpoint(correlationId, null, reportName, "XSLT Trace");
+        reporter.Start();
+        testTool.endpoint(correlationId, null, reportName, "XSLT Trace")
+    }
+
+    private void Start() {
         testTool.startpoint(correlationId, xmlFile.getName(), "Start XSLT", "Start XSLT");
         try {
             List<String> xmlList = Files.readAllLines(Paths.get(xmlFile.getAbsolutePath()));
@@ -67,13 +77,13 @@ public class XslTransformerReporter {
             }
             testTool.infopoint(correlationId, xmlFile.getName(), "XSL input file", writer.toString());
 
-            PrintAllImportedXSL(correlationId);
+            PrintAllImportedXSL();
 
-            PrintCompleteTraceFromStack(correlationId);
+            PrintCompleteTraceFromStack();
 
-            PrintCompleteXSLT(correlationId);
+            PrintCompleteXSLT();
 
-            LoopThroughAllTemplates(correlationId);
+            LoopThroughAllTemplates();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -81,7 +91,7 @@ public class XslTransformerReporter {
     }
 
     //TODO refactor into multiple methods according to Single Responsibility (at least separate 'reader' and 'writer')
-    private void PrintAllImportedXSL(String correlationId) {
+    private void PrintAllImportedXSL() {
         try {
             Document xslDocument = BuildDocument(xslFile);
             if(!ImportNodesPresent(xslDocument)) {
@@ -131,11 +141,11 @@ public class XslTransformerReporter {
         }
     }
 
-    private void PrintCompleteXSLT(String correlationId) {
+    private void PrintCompleteXSLT() {
         testTool.infopoint(correlationId, xmlFile.getName(), "XML after full transformation", xsltResult);
     }
 
-    private void PrintCompleteTraceFromStack(String correlationId) {
+    private void PrintCompleteTraceFromStack() {
         StringBuilder result = new StringBuilder();
         for (TemplateTrace templateTrace : templateTraceList) {
             result.append(templateTrace.getWholeTrace(true)).append("\n");
@@ -146,18 +156,18 @@ public class XslTransformerReporter {
     /*
     * This method iterates over all instances of 'template match' nodes
     * */
-    private void LoopThroughAllTemplates(String correlationId) {
+    private void LoopThroughAllTemplates() {
         try {
 
             for (TemplateTrace templateTrace : templateTraceList) {
 //                System.out.println(templateTrace.getSelectedNode());
                 if(templateTrace.getSelectedNode() == null) {
                     testTool.startpoint(correlationId, null, "template match=" + templateTrace.getTemplateName(), templateTrace.getWholeTrace(false));
-                    PrintXSLOfTemplate(correlationId, templateTrace.getTemplateName());
+                    PrintXSLOfTemplate(templateTrace.getTemplateName());
                     testTool.endpoint(correlationId, null, "template match=" + templateTrace.getTemplateName(), templateTrace.getWholeTrace(false));
                 } else {
                     testTool.startpoint(correlationId, null, "built-in-rule match=" + templateTrace.getTemplateName() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
-                    PrintXSLOfTemplate(correlationId, templateTrace.getTemplateName());
+                    PrintXSLOfTemplate(templateTrace.getTemplateName());
                     testTool.endpoint(correlationId, null, "built-in-rule match=" + templateTrace.getTemplateName() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
                 }
             }
@@ -166,7 +176,7 @@ public class XslTransformerReporter {
         }
     }
 
-    private void PrintXSLOfTemplate(String correlationId, String templateName) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException {
+    private void PrintXSLOfTemplate(String templateName) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException {
 
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
