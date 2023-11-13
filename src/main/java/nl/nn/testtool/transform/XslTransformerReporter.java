@@ -42,13 +42,13 @@ public class XslTransformerReporter {
     private final String reportname;
 
     public XslTransformerReporter(TestTool testTool, File xmlFile, File xslFile, List<TemplateTrace> templateTraceStack, String xsltResult, String correlationId, String reportName) {
-        //TODO: gebruik files
         this.testTool = testTool;
         this.xmlFile = xmlFile;
         this.xslFile = xslFile;
         this.templateTraceList = templateTraceStack;
         this.xsltResult = xsltResult;
         this.allXSLFiles = new ArrayList<>();
+        this.allXSLFiles.add(this.xslFile);
         this.correlationId = correlationId;
         this.reportname = reportName;
     }
@@ -160,7 +160,6 @@ public class XslTransformerReporter {
         try {
 
             for (TemplateTrace templateTrace : templateTraceList) {
-//                System.out.println(templateTrace.getSelectedNode());
                 if(templateTrace.getSelectedNode() == null) {
                     testTool.startpoint(correlationId, null, "template match=" + templateTrace.getTemplateName(), templateTrace.getWholeTrace(false));
                     PrintXSLOfTemplate(templateTrace.getTemplateName());
@@ -177,7 +176,6 @@ public class XslTransformerReporter {
     }
 
     private void PrintXSLOfTemplate(String templateName) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException {
-
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document doc;
@@ -187,6 +185,7 @@ public class XslTransformerReporter {
             doc.getDocumentElement().normalize();
             NodeList nodeList = GetNodesByXPath("//*[local-name()='template']", doc);
             StringWriter result = new StringWriter();
+
             for (int i = 0; i < nodeList.getLength(); i++) {
                 Element element = (Element) nodeList.item(i);
 
