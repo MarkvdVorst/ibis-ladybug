@@ -56,11 +56,11 @@ public class XslTransformerReporter {
     public static void initiate(TestTool testTool, File xmlFile, File xslFile, List<TemplateTrace> templateTraceList, String xsltResult, String correlationId, String reportName){
         XslTransformerReporter reporter = new XslTransformerReporter(testTool, xmlFile, xslFile, templateTraceList, xsltResult, correlationId, reportName);
         testTool.startpoint(correlationId, null, reportName, "XSLT Trace");
-        reporter.Start();
+        reporter.start();
         testTool.endpoint(correlationId, null, reportName, "XSLT Trace");
     }
 
-    private void Start() {
+    private void start() {
         testTool.startpoint(correlationId, xmlFile.getName(), "Start XSLT", "Start XSLT");
         try {
             List<String> xmlList = Files.readAllLines(Paths.get(xmlFile.getAbsolutePath()));
@@ -77,13 +77,13 @@ public class XslTransformerReporter {
             }
             testTool.infopoint(correlationId, xmlFile.getName(), "XSL input file", writer.toString());
 
-            PrintAllImportedXSL();
+            printImportedXsl();
 
-            PrintCompleteTraceFromStack();
+            printEntireXsltTrace();
 
-            PrintCompleteXSLT();
+            printTransformedXml();
 
-            LoopThroughAllTemplates();
+            loopThroughTemplates();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -91,13 +91,13 @@ public class XslTransformerReporter {
     }
 
     //TODO refactor into multiple methods according to Single Responsibility (at least separate 'reader' and 'writer')
-    private void PrintAllImportedXSL() {
+    private void printImportedXsl() {
         try {
-            Document xslDocument = BuildDocument(xslFile);
-            if(!ImportNodesPresent(xslDocument)) {
+            Document xslDocument = buildDocument(xslFile);
+            if(!importsPresent(xslDocument)) {
                 return;
             }
-            NodeList nodeList = GetNodesByXPath("//*[local-name()='import']",xslDocument);
+            NodeList nodeList = getNodesByXPath("//*[local-name()='import']",xslDocument);
             testTool.startpoint(correlationId, xslFile.getName(), "Imported XSL", "Imported XSL files");
             // Loop over all the 'import' nodes (each node references 1 XSL file)
             for (int i = 0; i < nodeList.getLength(); i++) {
@@ -126,10 +126,10 @@ public class XslTransformerReporter {
         }
     }
 
-    private boolean ImportNodesPresent(Document doc) {
+    private boolean importsPresent(Document doc) {
         try {
             // Get a list of all 'import' nodes
-            NodeList nodeList = GetNodesByXPath("//*[local-name()='import']", doc);
+            NodeList nodeList = getNodesByXPath("//*[local-name()='import']", doc);
             // Check if nodeList is populated
             if (nodeList.getLength() == 0) {
                 return false;
@@ -141,11 +141,11 @@ public class XslTransformerReporter {
         }
     }
 
-    private void PrintCompleteXSLT() {
+    private void printTransformedXml() {
         testTool.infopoint(correlationId, xmlFile.getName(), "XML after full transformation", xsltResult);
     }
 
-    private void PrintCompleteTraceFromStack() {
+    private void printEntireXsltTrace() {
         StringBuilder result = new StringBuilder();
         for (TemplateTrace templateTrace : templateTraceList) {
             result.append(templateTrace.getWholeTrace(true)).append("\n");
@@ -156,17 +156,17 @@ public class XslTransformerReporter {
     /*
     * This method iterates over all instances of 'template match' nodes
     * */
-    private void LoopThroughAllTemplates() {
+    private void loopThroughTemplates() {
         try {
 
             for (TemplateTrace templateTrace : templateTraceList) {
                 if(templateTrace.getSelectedNode() == null) {
                     testTool.startpoint(correlationId, null, "template match=" + templateTrace.getTemplateName(), templateTrace.getWholeTrace(false));
-                    PrintXSLOfTemplate(templateTrace.getTemplateName());
+                    printTemplateXsl(templateTrace.getTemplateName());
                     testTool.endpoint(correlationId, null, "template match=" + templateTrace.getTemplateName(), templateTrace.getWholeTrace(false));
                 } else {
                     testTool.startpoint(correlationId, null, "built-in-rule match=" + templateTrace.getTemplateName() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
-                    PrintXSLOfTemplate(templateTrace.getTemplateName());
+                    printTemplateXsl(templateTrace.getTemplateName());
                     testTool.endpoint(correlationId, null, "built-in-rule match=" + templateTrace.getTemplateName() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
                 }
             }
@@ -175,7 +175,7 @@ public class XslTransformerReporter {
         }
     }
 
-    private void PrintXSLOfTemplate(String templateName) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException {
+    private void printTemplateXsl(String templateName) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document doc;
@@ -183,7 +183,7 @@ public class XslTransformerReporter {
             boolean wasFound = false;
             doc = builder.parse(file);
             doc.getDocumentElement().normalize();
-            NodeList nodeList = GetNodesByXPath("//*[local-name()='template']", doc);
+            NodeList nodeList = getNodesByXPath("//*[local-name()='template']", doc);
             StringWriter result = new StringWriter();
 
             for (int i = 0; i < nodeList.getLength(); i++) {
@@ -192,7 +192,7 @@ public class XslTransformerReporter {
                 if (element.getAttribute("match").equals(templateName)) {
                     wasFound = true;
                     StringBuilder stringBuilder = new StringBuilder();
-                    GetNodeLayout(stringBuilder, nodeList.item(i), 0, true);
+                    getNodeLayout(stringBuilder, nodeList.item(i), 0, true);
                     result.append(stringBuilder).append("\n");
                 }
             }
@@ -202,7 +202,7 @@ public class XslTransformerReporter {
         }
     }
 
-    private StringBuilder GetXMLOfTemplate(Node templateNode) {
+    private StringBuilder getTemplateXml(Node templateNode) {
         try {
             DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
             DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
@@ -215,7 +215,7 @@ public class XslTransformerReporter {
             StringBuilder result = new StringBuilder();
             for (int i = 0; i < nodelist.getLength(); i++) {
                 if (nodelist.item(i).getNodeName().equals(match) || match.equals("/")) {
-                    GetNodeLayout(result, nodelist.item(i), 0, true);
+                    getNodeLayout(result, nodelist.item(i), 0, true);
                     result.append("\n");
                 }
             }
@@ -225,7 +225,7 @@ public class XslTransformerReporter {
         }
     }
 
-    private void GetNodeLayout(StringBuilder result, Node node, int indent, boolean needsIndent) {
+    private void getNodeLayout(StringBuilder result, Node node, int indent, boolean needsIndent) {
         if (needsIndent) {
             for (int i = 0; i < indent; i++) {
                 result.append("\t");
@@ -245,7 +245,7 @@ public class XslTransformerReporter {
             result.append(">");
             NodeList children = node.getChildNodes();
             for (int i = 0; i < children.getLength(); i++) {
-                GetNodeLayout(result, children.item(i), indent + 1, needsIndent);
+                getNodeLayout(result, children.item(i), indent + 1, needsIndent);
             }
             if (needsIndent) {
                 for (int i = 0; i < indent; i++) {
@@ -256,19 +256,18 @@ public class XslTransformerReporter {
         }
     }
 
-    private NodeList GetNodesByXPath(String xPathExpression, Document doc) throws XPathExpressionException {
+    private NodeList getNodesByXPath(String xPathExpression, Document doc) throws XPathExpressionException {
         XPath xpath = XPathFactory.newInstance().newXPath();
         XPathExpression expression = xpath.compile(xPathExpression);
         return (NodeList) expression.evaluate(doc.getDocumentElement(), XPathConstants.NODESET);
     }
 
-    private Document BuildDocument(File file) throws ParserConfigurationException, IOException, SAXException {
+    private Document buildDocument(File file) throws ParserConfigurationException, IOException, SAXException {
         DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
         DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
         Document doc = documentBuilder.parse(file);
         doc.getDocumentElement().normalize();
         return doc;
     }
-    //Boe
 
 }
