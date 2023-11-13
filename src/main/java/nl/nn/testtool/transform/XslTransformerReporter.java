@@ -1,5 +1,5 @@
 /*
-   Copyright 2022-2023 WeAreFrank!
+   Copyright 2023 WeAreFrank!
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -13,11 +13,13 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 */
+
 package nl.nn.testtool.transform;
 
 import nl.nn.testtool.trace.TemplateTrace;
 import nl.nn.testtool.TestTool;
 import nl.nn.testtool.util.DocumentUtil;
+
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
@@ -78,7 +80,7 @@ public class XslTransformerReporter {
 
             printImportedXsl();
 
-            printEntireXsltTrace();
+            printXsltTrace();
 
             printTransformedXml();
 
@@ -125,16 +127,17 @@ public class XslTransformerReporter {
         }
     }
 
+    /**
+    * @param nodeName should be the name of the node to look for WITHOUT namespace prefix
+    *
+    * */
     private boolean nodePresent(String nodeName, Document doc) {
         try {
-            // Get a list of all 'import' nodes
-            NodeList nodeList = getNodesByXPath("//*[local-name()='"+ nodeName +"']", doc);
-            // Check if nodeList is populated
-            if (nodeList.getLength() == 0) {
+            // Check if a node with the provided name exists is populated
+            if (getNodesByXPath("//*[local-name()='"+ nodeName +"']", doc).getLength() == 0) {
                 return false;
             }
             return true;
-
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -144,7 +147,7 @@ public class XslTransformerReporter {
         testTool.infopoint(correlationId, xmlFile.getName(), "XML after full transformation", xsltResult);
     }
 
-    private void printEntireXsltTrace() {
+    private void printXsltTrace() {
         StringBuilder result = new StringBuilder();
         for (TemplateTrace templateTrace : templateTraceList) {
             result.append(templateTrace.getWholeTrace(true)).append("\n");
@@ -152,12 +155,9 @@ public class XslTransformerReporter {
         testTool.infopoint(correlationId, xslFile.getName(), "Complete XSLT Trace", result.toString());
     }
 
-    /*
-    * This method iterates over all instances of 'template match' nodes
-    * */
+    //This method iterates over all instances of '<template>' nodes
     private void loopThroughTemplates() {
         try {
-
             for (TemplateTrace templateTrace : templateTraceList) {
                 if(templateTrace.getSelectedNode() == null) {
                     testTool.startpoint(correlationId, null, "template match=" + templateTrace.getTemplateName(), templateTrace.getWholeTrace(false));
