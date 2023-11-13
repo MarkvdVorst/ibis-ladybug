@@ -93,7 +93,7 @@ public class XslTransformerReporter {
     private void printImportedXsl() {
         try {
             Document xslDocument = DocumentUtil.buildDocument(xslFile);
-            if(!importsPresent(xslDocument)) {
+            if(!nodePresent("import", xslDocument)) {
                 return;
             }
             NodeList nodeList = getNodesByXPath("//*[local-name()='import']",xslDocument);
@@ -125,10 +125,10 @@ public class XslTransformerReporter {
         }
     }
 
-    private boolean importsPresent(Document doc) {
+    private boolean nodePresent(String nodeName, Document doc) {
         try {
             // Get a list of all 'import' nodes
-            NodeList nodeList = getNodesByXPath("//*[local-name()='import']", doc);
+            NodeList nodeList = getNodesByXPath("//*[local-name()='"+ nodeName +"']", doc);
             // Check if nodeList is populated
             if (nodeList.getLength() == 0) {
                 return false;
@@ -177,9 +177,8 @@ public class XslTransformerReporter {
     private void printTemplateXsl(String templateName) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException {
 
         for (File file : allXSLFiles) {
-            boolean wasFound = false;
+            boolean hasMatchAttribute = false;
             Document doc = DocumentUtil.buildDocument(file);
-            doc.getDocumentElement().normalize();
             NodeList nodeList = getNodesByXPath("//*[local-name()='template']", doc);
             StringWriter result = new StringWriter();
 
@@ -187,13 +186,13 @@ public class XslTransformerReporter {
                 Element element = (Element) nodeList.item(i);
 
                 if (element.getAttribute("match").equals(templateName)) {
-                    wasFound = true;
+                    hasMatchAttribute = true;
                     StringBuilder stringBuilder = new StringBuilder();
-                    getNodeLayout(stringBuilder, nodeList.item(i), 0, true);
+                    getNodeIndentation(stringBuilder, nodeList.item(i), 0, true);
                     result.append(stringBuilder).append("\n");
                 }
             }
-            if (!wasFound) continue;
+            if (!hasMatchAttribute) continue;
 
             testTool.infopoint(correlationId, null, file.getName(), result.toString());
         }
@@ -210,7 +209,7 @@ public class XslTransformerReporter {
             StringBuilder result = new StringBuilder();
             for (int i = 0; i < nodelist.getLength(); i++) {
                 if (nodelist.item(i).getNodeName().equals(match) || match.equals("/")) {
-                    getNodeLayout(result, nodelist.item(i), 0, true);
+                    getNodeIndentation(result, nodelist.item(i), 0, true);
                     result.append("\n");
                 }
             }
@@ -220,7 +219,7 @@ public class XslTransformerReporter {
         }
     }
 
-    private void getNodeLayout(StringBuilder result, Node node, int indent, boolean needsIndent) {
+    private void getNodeIndentation(StringBuilder result, Node node, int indent, boolean needsIndent) {
         if (needsIndent) {
             for (int i = 0; i < indent; i++) {
                 result.append("\t");
@@ -240,7 +239,7 @@ public class XslTransformerReporter {
             result.append(">");
             NodeList children = node.getChildNodes();
             for (int i = 0; i < children.getLength(); i++) {
-                getNodeLayout(result, children.item(i), indent + 1, needsIndent);
+                getNodeIndentation(result, children.item(i), indent + 1, needsIndent);
             }
             if (needsIndent) {
                 for (int i = 0; i < indent; i++) {
