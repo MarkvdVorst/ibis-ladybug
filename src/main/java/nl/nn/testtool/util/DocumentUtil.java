@@ -28,15 +28,27 @@ import java.io.IOException;
 
 public class DocumentUtil {
 
-    private static DocumentBuilderFactory newDocumentBuilderFactory(){
-        return DocumentBuilderFactory.newInstance();
+    private static DocumentBuilder builder;
+
+    private static DocumentBuilderFactory newDocumentBuilderFactory() { return DocumentBuilderFactory.newInstance(); }
+
+    private static void setDocumentBuilder()  {
+        try {
+            builder = newDocumentBuilderFactory().newDocumentBuilder();
+
+        } catch (ParserConfigurationException e) {
+            throw new RuntimeException(e);
+        }
     }
 
-    public static DocumentBuilder newDocumentBuilder() throws ParserConfigurationException {
-        return newDocumentBuilderFactory().newDocumentBuilder();
+    public static DocumentBuilder getDocumentBuilder() {
+        if (builder == null) {setDocumentBuilder();}
+        return builder;
     }
+
+
     public static Document buildDocument(File file) throws ParserConfigurationException, IOException, SAXException {
-        Document newDocument = newDocumentBuilder().parse(file);
+        Document newDocument = getDocumentBuilder().parse(file);
         newDocument.getDocumentElement().normalize();
         return newDocument;
     }
