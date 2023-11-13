@@ -17,11 +17,10 @@ package nl.nn.testtool.transform;
 
 import nl.nn.testtool.trace.TemplateTrace;
 import nl.nn.testtool.TestTool;
+import nl.nn.testtool.util.DocumentUtil;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.*;
 import java.io.*;
@@ -93,7 +92,7 @@ public class XslTransformerReporter {
     //TODO refactor into multiple methods according to Single Responsibility (at least separate 'reader' and 'writer')
     private void printImportedXsl() {
         try {
-            Document xslDocument = buildDocument(xslFile);
+            Document xslDocument = DocumentUtil.buildDocument(xslFile);
             if(!importsPresent(xslDocument)) {
                 return;
             }
@@ -176,12 +175,10 @@ public class XslTransformerReporter {
     }
 
     private void printTemplateXsl(String templateName) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException {
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder builder = factory.newDocumentBuilder();
-        Document doc;
+
         for (File file : allXSLFiles) {
             boolean wasFound = false;
-            doc = builder.parse(file);
+            Document doc = DocumentUtil.buildDocument(file);
             doc.getDocumentElement().normalize();
             NodeList nodeList = getNodesByXPath("//*[local-name()='template']", doc);
             StringWriter result = new StringWriter();
@@ -204,9 +201,7 @@ public class XslTransformerReporter {
 
     private StringBuilder getTemplateXml(Node templateNode) {
         try {
-            DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-            DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-            Document doc = documentBuilder.parse(xmlFile);
+            Document doc = DocumentUtil.buildDocument(xmlFile);
 
             NodeList nodelist = doc.getElementsByTagName("*");
             Element templateElement = (Element) templateNode;
@@ -260,14 +255,6 @@ public class XslTransformerReporter {
         XPath xpath = XPathFactory.newInstance().newXPath();
         XPathExpression expression = xpath.compile(xPathExpression);
         return (NodeList) expression.evaluate(doc.getDocumentElement(), XPathConstants.NODESET);
-    }
-
-    private Document buildDocument(File file) throws ParserConfigurationException, IOException, SAXException {
-        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        DocumentBuilder documentBuilder = documentBuilderFactory.newDocumentBuilder();
-        Document doc = documentBuilder.parse(file);
-        doc.getDocumentElement().normalize();
-        return doc;
     }
 
 }
