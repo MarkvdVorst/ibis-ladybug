@@ -80,7 +80,7 @@ public class XslTransformerReporter {
 
             printImportedXsl();
 
-            printXsltTrace();
+            printEntireXsltTrace();
 
             printTransformedXml();
 
@@ -147,13 +147,14 @@ public class XslTransformerReporter {
         testTool.infopoint(correlationId, xmlFile.getName(), "XML after full transformation", xsltResult);
     }
 
-    private void printXsltTrace() {
+    private void printEntireXsltTrace() {
         StringBuilder result = new StringBuilder();
         for (TemplateTrace templateTrace : templateTraceList) {
             result.append(templateTrace.getWholeTrace(true)).append("\n");
         }
         testTool.infopoint(correlationId, xslFile.getName(), "Complete XSLT Trace", result.toString());
     }
+
 
     //This method iterates over all instances of '<template>' nodes
     private void loopThroughTemplates() {
