@@ -25,6 +25,9 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
 
 public class DocumentUtil {
 
@@ -35,7 +38,6 @@ public class DocumentUtil {
     private static void setDocumentBuilder()  {
         try {
             builder = newDocumentBuilderFactory().newDocumentBuilder();
-
         } catch (ParserConfigurationException e) {
             throw new RuntimeException(e);
         }
@@ -52,4 +54,6 @@ public class DocumentUtil {
         newDocument.getDocumentElement().normalize();
         return newDocument;
     }
+
+    public static List<String> readFile(Path filepath) throws IOException { return Files.readAllLines(filepath); }
 }

@@ -40,7 +40,7 @@ public class XslTransformerReporter {
     private final List<TemplateTrace> templateTraceList;
     private List<File> allXSLFiles;
     private final String correlationId;
-    private final String reportname;
+    private final String reportName;
 
     public XslTransformerReporter(TestTool testTool, File xmlFile, File xslFile, List<TemplateTrace> templateTraceStack, String xsltResult, String correlationId, String reportName) {
         this.testTool = testTool;
@@ -51,7 +51,7 @@ public class XslTransformerReporter {
         this.allXSLFiles = new ArrayList<>();
         this.allXSLFiles.add(this.xslFile);
         this.correlationId = correlationId;
-        this.reportname = reportName;
+        this.reportName = reportName;
     }
 
     public static void initiate(TestTool testTool, File xmlFile, File xslFile, List<TemplateTrace> templateTraceList, String xsltResult, String correlationId, String reportName){
@@ -91,35 +91,24 @@ public class XslTransformerReporter {
         testTool.endpoint(correlationId, xmlFile.getName(), "Start XSLT", "End of XSLT");
     }
 
-    //TODO refactor into multiple methods according to Single Responsibility (at least separate 'reader' and 'writer')
+
     private void printImportedXsl() {
         try {
+
             Document xslDocument = DocumentUtil.buildDocument(xslFile);
-            if(!nodePresent("import", xslDocument)) {
+            if(!fileHasNode("import", xslDocument)) {
                 return;
             }
+
             NodeList nodeList = getNodesByXPath("//*[local-name()='import']",xslDocument);
             testTool.startpoint(correlationId, xslFile.getName(), "Imported XSL", "Imported XSL files");
-            // Loop over all the 'import' nodes (each node references 1 XSL file)
+            // Loop over all the 'import' nodes (each node references 1 XSL file in its 'href' attribute)
             for (int i = 0; i < nodeList.getLength(); i++) {
-                // Get the import element from current import node
-                Element element = (Element) nodeList.item(i);
-                // Grab the file path from the 'href' attribute
-                String importPath = element.getAttribute("href");
+                Element element = (Element) nodeList.item(i); // Get the import element from current import node
+                String importPath = element.getAttribute("href"); // Grab the file path from the 'href' attribute
                 Path xslFilePath = Paths.get(importPath);
-                // Get the XSL file's name using the given path
-                String fileName = xslFilePath.getFileName().toString();
-
-                // Add the imported XSL file to global variable
-                this.allXSLFiles.add(xslFilePath.toFile());
-
-                // Read all the lines in the imported XSL file to a List and write them into the report one by one
-                List<String> xslList = Files.readAllLines(xslFilePath);
-                StringWriter writer = new StringWriter();
-                for (String xsl : xslList) {
-                    writer.append(xsl).append("\n");
-                }
-                testTool.infopoint(correlationId, xslFile.getName(), fileName, writer.toString());
+                this.allXSLFiles.add(xslFilePath.toFile()); // Add the imported XSL file to global variable for later reference
+                writeFileToInfopoint(xslFilePath); //write the entire XSL file to the report as an infopoint
             }
             testTool.endpoint(correlationId, xslFile.getName(), "Imported XSL", "Imported XSL files");
         } catch (Exception e) {
@@ -127,11 +116,19 @@ public class XslTransformerReporter {
         }
     }
 
+    private void writeFileToInfopoint(Path filepath) throws IOException {
+        StringWriter writer = new StringWriter();
+        for (String xsl : DocumentUtil.readFile(filepath)) {
+            writer.append(xsl).append("\n");
+        }
+        testTool.infopoint(correlationId, xslFile.getName(), filepath.getFileName().toString(), writer.toString());
+    }
+
+
     /**
     * @param nodeName should be the name of the node to look for WITHOUT namespace prefix
-    *
     * */
-    private boolean nodePresent(String nodeName, Document doc) {
+    private boolean fileHasNode(String nodeName, Document doc) {
         try {
             // Check if a node with the provided name exists is populated
             if (getNodesByXPath("//*[local-name()='"+ nodeName +"']", doc).getLength() == 0) {
