@@ -32,7 +32,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public class XalanTemplateTraceListener implements TraceListener, LadybugTraceListener {
+public class XalanTemplateTraceListener implements TraceListenerEx2, LadybugTraceListener {
 
     @Getter
     private final List<TemplateTrace> templateTraces;
@@ -282,5 +282,51 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
             }
             templateTraces.get(templateTraces.size() - 1).AddChildTrace(trace.toString());
         }
+    }
+
+
+    //TODO: maak een trace id voor elke trace waardoor we kunnen achterhalen wanneer een trace einidgt
+    @Override
+    public void traceEnd(TracerEvent ev) {
+        StringBuilder trace = new StringBuilder();
+        if(ev.m_styleNode.getXSLToken() == Constants.ELEMNAME_TEMPLATE){
+            if (m_traceTemplates || m_traceElements) {
+                ElemTemplate et = (ElemTemplate) ev.m_styleNode;
+
+                //showing systemid once for file location
+                if(et.getSystemId() != null) {
+                    trace.append("Now using: " + et.getSystemId());
+                }else{
+                    return;
+                }
+
+                //changed to just file name. reading the whole systemid everytime is hard to read
+                String systemId = ev.m_styleNode.getSystemId();
+                if (systemId != null) {
+                    File file = new File(systemId);
+                    trace.append("\n").append(file.getName() + " Line #" + et.getLineNumber() + ", " + "Column #"
+                            + et.getColumnNumber() + ": " + et.getNodeName() + " ");
+                } else {
+                    trace.append("\n").append("built-in-rule ");
+                }
+
+                if (null != et.getMatch()) {
+                    trace.append("match='" + et.getMatch().getPatternString() + "' ");
+                }
+
+                if (null != et.getName()) {
+                    trace.append("name='" + et.getName() + "' ");
+                }
+
+                trace.append("\n");
+                System.out.println(trace);
+                System.out.println();
+            }
+        }
+    }
+
+    @Override
+    public void selectEnd(EndSelectionEvent endSelectionEvent) throws TransformerException {
+
     }
 }
