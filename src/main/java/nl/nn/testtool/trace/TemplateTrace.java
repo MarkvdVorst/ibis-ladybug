@@ -20,67 +20,76 @@ import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class TemplateTrace {
     @Getter
     @Setter
-    private String templateName;
+    private String traceId;
+    @Getter
+    private TemplateTrace parentTrace;
     @Getter
     @Setter
-    private String parentTrace;
+    private String templateMatch;
+    @Getter
+    private String templateTrace;
     @Getter
     @Setter
     private String systemId;
     @Getter
+    private List<String> traceContext;
+    @Getter
+    private List<TemplateTrace> childTraces;
+    @Getter
+    @Setter
     private String selectedNode;
     @Getter
-    private List<String> childrenTraces;
+    @Setter
+    private boolean aBuiltInTemplate;
 
-    public TemplateTrace(String templateName, String systemId, String parentTrace) {
-        this.templateName = templateName;
-        this.parentTrace = parentTrace;
+    public TemplateTrace(String templateMatch, String systemId, String templateTrace, String id, TemplateTrace parentTrace) {
+        this.templateMatch = templateMatch;
+        this.templateTrace = templateTrace;
         this.systemId = systemId;
-        this.childrenTraces = new ArrayList<>();
-    }
-
-    public TemplateTrace(String parentTrace){
+        this.traceContext = new ArrayList<>();
+        this.childTraces = new ArrayList<>();
+        this.traceId = id;
         this.parentTrace = parentTrace;
-        this.childrenTraces = new ArrayList<>();
     }
 
-    /**@param nodeName selected node for the trace*/
-    public void setSelectedNode(String nodeName){
-        this.selectedNode = nodeName;
+    public TemplateTrace(String templateTrace, TemplateTrace parentTrace){
+        this.templateTrace = templateTrace;
+        this.traceContext = new ArrayList<>();
+        this.childTraces = new ArrayList<>();
+        this.parentTrace = parentTrace;
+    }
+
+    public TemplateTrace(){
+        this.traceContext = new ArrayList<>();
+        this.childTraces = new ArrayList<>();
+    }
+
+    public void addChildtrace(TemplateTrace trace){
+        this.childTraces.add(trace);
     }
 
     /**This method adds a trace to the children traces of the parent template trace
-     * @param childTrace adds a child trace of this parent trace*/
-    public void AddChildTrace(String childTrace) {
-        childrenTraces.add(childTrace);
+     * @param context adds a context trace to this trace*/
+    public void addTraceContext(String context) {
+        this.traceContext.add(context);
     }
 
-    /**@param index of child trace
-     * @return Get a child trace from a specific index*/
-    public String getChildTrace(int index) {
-        return childrenTraces.get(index);
-    }
-
-    /**Empties the child traces for this template trace*/
-    public void Flush() {
-        childrenTraces = new ArrayList<>();
-    }
-
-    /**@param showSeperator determines whether it shows a line to separate the traces.
+    /**@param showSeparator determines whether it shows a line to separate the traces.
      * @return Returns a string that holds the complete trace of the transform*/
-    public String getWholeTrace(boolean showSeperator){
+    public String getWholeTrace(boolean showSeparator){
         StringBuilder result = new StringBuilder();
 
-        if(showSeperator) {
+        if(showSeparator) {
             result.append("--------------------------------------------New template being applied--------------------------------------------\n");
         }
-        result.append(parentTrace);
+        result.append(templateTrace);
 
-        for (String childrenTrace : childrenTraces) {
+        for (String childrenTrace : traceContext) {
             result.append(childrenTrace);
         }
 

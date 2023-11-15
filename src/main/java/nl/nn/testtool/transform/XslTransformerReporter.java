@@ -37,16 +37,16 @@ public class XslTransformerReporter {
     private final File xmlFile;
     private final File xslFile;
     private final String xsltResult;
-    private final List<TemplateTrace> templateTraceList;
+    private final TemplateTrace rootTrace;
     private List<File> allXSLFiles;
     private final String correlationId;
     private final String reportName;
 
-    public XslTransformerReporter(TestTool testTool, File xmlFile, File xslFile, List<TemplateTrace> templateTraceStack, String xsltResult, String correlationId, String reportName) {
+    public XslTransformerReporter(TestTool testTool, File xmlFile, File xslFile, TemplateTrace rootTrace, String xsltResult, String correlationId, String reportName) {
         this.testTool = testTool;
         this.xmlFile = xmlFile;
         this.xslFile = xslFile;
-        this.templateTraceList = templateTraceStack;
+        this.rootTrace = rootTrace;
         this.xsltResult = xsltResult;
         this.allXSLFiles = new ArrayList<>();
         this.allXSLFiles.add(this.xslFile);
@@ -54,8 +54,8 @@ public class XslTransformerReporter {
         this.reportName = reportName;
     }
 
-    public static void initiate(TestTool testTool, File xmlFile, File xslFile, List<TemplateTrace> templateTraceList, String xsltResult, String correlationId, String reportName){
-        XslTransformerReporter reporter = new XslTransformerReporter(testTool, xmlFile, xslFile, templateTraceList, xsltResult, correlationId, reportName);
+    public static void initiate(TestTool testTool, File xmlFile, File xslFile, TemplateTrace rootTrace, String xsltResult, String correlationId, String reportName){
+        XslTransformerReporter reporter = new XslTransformerReporter(testTool, xmlFile, xslFile, rootTrace, xsltResult, correlationId, reportName);
         testTool.startpoint(correlationId, null, reportName, "XSLT Trace");
         reporter.start();
         testTool.endpoint(correlationId, null, reportName, "XSLT Trace");
@@ -80,11 +80,13 @@ public class XslTransformerReporter {
 
             printImportedXsl();
 
-            printEntireXsltTrace();
+            printCompleteTraceFromStack(rootTrace);
 
             printTransformedXml();
 
-            loopThroughTemplates();
+            testTool.startpoint(correlationId, null, "Trace layout", null);
+            loopThroughAllTemplates(rootTrace);
+            testTool.endpoint(correlationId, null, "Trace layout", null);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -144,27 +146,40 @@ public class XslTransformerReporter {
         testTool.infopoint(correlationId, xmlFile.getName(), "XML after full transformation", xsltResult);
     }
 
-    private void printEntireXsltTrace() {
-        StringBuilder result = new StringBuilder();
-        for (TemplateTrace templateTrace : templateTraceList) {
-            result.append(templateTrace.getWholeTrace(true)).append("\n");
-        }
-        testTool.infopoint(correlationId, xslFile.getName(), "Complete XSLT Trace", result.toString());
+    //TODO: nog niet af
+    private void printCompleteTraceFromStack(TemplateTrace trace) {
+        String result = getAllTraces(trace);
+        testTool.infopoint(correlationId, xslFile.getName(), "Complete XSLT Trace", result);
     }
 
+    private String getAllTraces(TemplateTrace trace){
+        StringBuilder result = new StringBuilder();
+        if(trace.getChildTraces().isEmpty()) return "";
+        for (TemplateTrace templateTrace : trace.getChildTraces()) {
+            result.append(templateTrace.getWholeTrace(true)).append("\n");
+            result.append(getAllTraces(templateTrace));
+        }
+        return result.toString();
+    }
 
-    //This method iterates over all instances of '<template>' nodes
-    private void loopThroughTemplates() {
+    /*
+    * This method iterates over all instances of 'template match' nodes
+    * */
+    //TODO: nog niet af
+    private void loopThroughAllTemplates(TemplateTrace trace) {
         try {
-            for (TemplateTrace templateTrace : templateTraceList) {
-                if(templateTrace.getSelectedNode() == null) {
-                    testTool.startpoint(correlationId, null, "template match=" + templateTrace.getTemplateName(), templateTrace.getWholeTrace(false));
-                    printTemplateXsl(templateTrace.getTemplateName());
-                    testTool.endpoint(correlationId, null, "template match=" + templateTrace.getTemplateName(), templateTrace.getWholeTrace(false));
+            if(trace.getChildTraces().isEmpty()) return;
+            for (TemplateTrace templateTrace : trace.getChildTraces()) {
+                if(!templateTrace.isABuiltInTemplate()) {
+                    testTool.startpoint(correlationId, templateTrace.getTraceId(), "template match=" + templateTrace.getTemplateMatch(), templateTrace.getWholeTrace(false));
+                    PrintXSLOfTemplate(templateTrace.getTemplateMatch());
+                    loopThroughAllTemplates(templateTrace);
+                    testTool.endpoint(correlationId, templateTrace.getTraceId(), "template match=" + templateTrace.getTemplateMatch(), templateTrace.getWholeTrace(false));
                 } else {
-                    testTool.startpoint(correlationId, null, "built-in-rule match=" + templateTrace.getTemplateName() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
-                    printTemplateXsl(templateTrace.getTemplateName());
-                    testTool.endpoint(correlationId, null, "built-in-rule match=" + templateTrace.getTemplateName() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
+                    testTool.startpoint(correlationId, templateTrace.getTraceId(), "built-in-rule match=" + templateTrace.getTemplateMatch() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
+                    PrintXSLOfTemplate(templateTrace.getTemplateMatch());
+                    loopThroughAllTemplates(templateTrace);
+                    testTool.endpoint(correlationId, templateTrace.getTraceId(), "built-in-rule match=" + templateTrace.getTemplateMatch() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
                 }
             }
         } catch (Exception e) {

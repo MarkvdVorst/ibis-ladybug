@@ -30,12 +30,14 @@ import javax.xml.transform.SourceLocator;
 import javax.xml.transform.TransformerException;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Objects;
 
-public class XalanTemplateTraceListener implements TraceListener, LadybugTraceListener {
+public class XalanTemplateTraceListener implements TraceListenerEx2, LadybugTraceListener {
 
     @Getter
-    private final List<TemplateTrace> templateTraces;
+    private final TemplateTrace rootTrace;
+
+    private TemplateTrace selectedTrace;
 
     /**
      * This needs to be set to true if the listener is to print an event whenever a template is invoked.
@@ -58,7 +60,8 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
     public boolean m_traceSelection = false;
 
     public XalanTemplateTraceListener() {
-        this.templateTraces = new ArrayList<>();
+        this.rootTrace = new TemplateTrace();
+        this.selectedTrace = rootTrace;
     }
 
     @Override
@@ -81,11 +84,12 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
                     String chars = new String(etl.getChars(), 0, etl.getChars().length);
 
                     trace.append("\n").append("    ").append(chars.trim());
-                    templateTraces.get(templateTraces.size() - 1).AddChildTrace(trace.toString());
+                    selectedTrace.addTraceContext(trace.toString());
                 }
                 break;
             case Constants.ELEMNAME_TEMPLATE:
                 if (m_traceTemplates || m_traceElements) {
+                    boolean isBuiltIn = false;
                     ElemTemplate et = (ElemTemplate) ev.m_styleNode;
 
                     //showing systemid once for file location
@@ -93,6 +97,7 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
                         trace.append("Now using: " + et.getSystemId());
                     }else{
                         trace.append("Now using: built-in-rule");
+                        isBuiltIn = true;
                     }
 
                     //changed to just file name. reading the whole systemid everytime is hard to read
@@ -103,6 +108,7 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
                                 + et.getColumnNumber() + ": " + et.getNodeName() + " ");
                     } else {
                         trace.append("\n").append("built-in-rule ");
+                        isBuiltIn = true;
                     }
 
                     if (null != et.getMatch()) {
@@ -114,7 +120,16 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
                     }
 
                     trace.append("\n");
-                    templateTraces.add(new TemplateTrace(et.getMatch().getPatternString(), et.getSystemId(), trace.toString()));
+
+                    String traceId = et.getLineNumber() + "_" + et.getColumnNumber() + "_" + et.getSystemId();
+                    TemplateTrace templateTrace = new TemplateTrace(et.getMatch().getPatternString(), et.getSystemId(), trace.toString(), traceId, selectedTrace);
+                    if(isBuiltIn){
+                        templateTrace.setABuiltInTemplate(true);
+                    }
+                    selectedTrace.addChildtrace(templateTrace);
+                    if(!isBuiltIn) {
+                        selectedTrace = templateTrace;
+                    }
                 }
                 break;
             default:
@@ -127,6 +142,7 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
                     } else {
                         trace.append("\n").append("null");
                     }
+                    selectedTrace.addTraceContext(trace.toString());
                 }
         }
     }
@@ -154,10 +170,11 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
                 trace.append("\n").append("Selected source node '").append(sourceNode.getNodeName()).append("', at "
                         //+ locator);
                 ).append(file.getName());
-                templateTraces.get(templateTraces.size() - 1).setSelectedNode(sourceNode.getNodeName());
+
+                selectedTrace.setSelectedNode(sourceNode.getNodeName());
             } else {
                 trace.append("\n").append("Selected source node '").append(sourceNode.getNodeName()).append("'");
-                templateTraces.get(templateTraces.size() - 1).setSelectedNode(sourceNode.getNodeName());
+                selectedTrace.setSelectedNode(sourceNode.getNodeName());
             }
 
             if (ev.m_styleNode.getLineNumber() == 0) {
@@ -234,7 +251,7 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
                 trace.append("\n").append(ev.m_selection.str());
             }
 
-            templateTraces.get(templateTraces.size() - 1).AddChildTrace(trace.toString());
+            selectedTrace.addTraceContext(trace.toString());
         }
     }
 
@@ -280,7 +297,30 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
                     trace.append("\n").append("IGNORABLEWHITESPACE");
                     break;
             }
-            templateTraces.get(templateTraces.size() - 1).AddChildTrace(trace.toString());
+            selectedTrace.addTraceContext(trace.toString());
         }
+    }
+
+
+    //TODO: maak een trace id voor elke trace waardoor we kunnen achterhalen wanneer een trace einidgt
+    @Override
+    public void traceEnd(TracerEvent ev) {
+        StringBuilder trace = new StringBuilder();
+        if(ev.m_styleNode.getXSLToken() == Constants.ELEMNAME_TEMPLATE){
+            if (m_traceTemplates || m_traceElements) {
+                ElemTemplate et = (ElemTemplate) ev.m_styleNode;
+
+                String traceId = et.getLineNumber() + "_" + et.getColumnNumber() + "_" + et.getSystemId();
+
+                if(Objects.equals(selectedTrace.getTraceId(), traceId)){
+                    selectedTrace = selectedTrace.getParentTrace();
+                }
+            }
+        }
+    }
+
+    @Override
+    public void selectEnd(EndSelectionEvent endSelectionEvent) throws TransformerException {
+
     }
 }
