@@ -49,7 +49,7 @@ public class DocumentUtil {
     }
 
 
-    public static Document buildDocument(File file) throws ParserConfigurationException, IOException, SAXException {
+    public static Document buildDocument(File file) throws IOException, SAXException {
         Document newDocument = getDocumentBuilder().parse(file);
         newDocument.getDocumentElement().normalize();
         return newDocument;
