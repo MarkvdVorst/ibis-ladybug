@@ -172,12 +172,12 @@ public class XslTransformerReporter {
             for (TemplateTrace templateTrace : trace.getChildTraces()) {
                 if(!templateTrace.isABuiltInTemplate()) {
                     testTool.startpoint(correlationId, templateTrace.getTraceId(), "template match=" + templateTrace.getTemplateMatch(), templateTrace.getWholeTrace(false));
-                    PrintXSLOfTemplate(templateTrace.getTemplateMatch());
+                    printTemplateXsl(templateTrace.getTemplateMatch());
                     loopThroughAllTemplates(templateTrace);
                     testTool.endpoint(correlationId, templateTrace.getTraceId(), "template match=" + templateTrace.getTemplateMatch(), templateTrace.getWholeTrace(false));
                 } else {
                     testTool.startpoint(correlationId, templateTrace.getTraceId(), "built-in-rule match=" + templateTrace.getTemplateMatch() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
-                    PrintXSLOfTemplate(templateTrace.getTemplateMatch());
+                    printTemplateXsl(templateTrace.getTemplateMatch());
                     loopThroughAllTemplates(templateTrace);
                     testTool.endpoint(correlationId, templateTrace.getTraceId(), "built-in-rule match=" + templateTrace.getTemplateMatch() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
                 }
