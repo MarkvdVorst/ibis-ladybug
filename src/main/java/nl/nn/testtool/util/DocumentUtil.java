@@ -33,7 +33,7 @@ public class DocumentUtil {
 
     private static DocumentBuilder builder;
 
-    private static DocumentBuilderFactory newDocumentBuilderFactory() { return DocumentBuilderFactory.newInstance(); }
+    public static DocumentBuilderFactory newDocumentBuilderFactory() { return DocumentBuilderFactory.newInstance(); }
 
     private static void setDocumentBuilder()  {
         try {
@@ -44,7 +44,8 @@ public class DocumentUtil {
     }
 
     public static DocumentBuilder getDocumentBuilder() {
-        if (builder == null) {setDocumentBuilder();}
+        if (builder == null) { setDocumentBuilder(); }
+
         return builder;
     }
 

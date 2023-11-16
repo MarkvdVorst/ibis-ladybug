@@ -82,14 +82,6 @@ public class XmlUtil {
 		return new net.sf.saxon.TransformerFactoryImpl();
 	}
 
-	public static DocumentBuilderFactory getDocumentBuilderFactory() {
-		// Deprecated
-		// return new net.sf.saxon.dom.DocumentBuilderFactoryImpl();
-		// Xerces
-		// return new org.apache.xerces.jaxp.DocumentBuilderFactoryImpl();
-		return DocumentBuilderFactory.newInstance();
-	}
-
 	@SneakyThrows
 	public static String nodeToString(Node node) {
 		Transformer transformer = getTransformerFactory().newTransformer();
@@ -99,8 +91,8 @@ public class XmlUtil {
 		return stringWriter.toString();
 	}
 
-	public static Node stringToNode(String string) throws SAXException, IOException, ParserConfigurationException {
-		return getDocumentBuilderFactory().newDocumentBuilder()
+	public static Node stringToNode(String string) throws SAXException, IOException {
+		return DocumentUtil.getDocumentBuilder()
 				.parse(new ByteArrayInputStream(string.getBytes())).getDocumentElement();
 	}
 }
