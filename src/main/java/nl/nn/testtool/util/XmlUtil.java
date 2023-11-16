@@ -70,14 +70,10 @@ public class XmlUtil {
 		SAXParserFactory factory = new org.apache.xerces.jaxp.SAXParserFactoryImpl();
 		try {
 			factory.newSAXParser().parse(inputSource, new DefaultHandler());
-		} catch (SAXException e) {
-			return false;
-		} catch (IOException e) {
-			return false;
-		} catch (ParserConfigurationException e) {
+		} catch (SAXException | IOException | ParserConfigurationException e) {
 			return false;
 		}
-		return true;
+        return true;
 	}
 
 	public static TransformerFactory getTransformerFactory() {
@@ -119,7 +115,7 @@ public class XmlUtil {
 		return stringWriter.toString();
 	}
 
-	public static Node stringToNode(String string) throws SAXException, IOException, ParserConfigurationException {
+	public static Node stringToNode(String string) throws SAXException, IOException {
 		return DocumentUtil.getDocumentBuilder()
 				.parse(new ByteArrayInputStream(string.getBytes())).getDocumentElement();
 	}

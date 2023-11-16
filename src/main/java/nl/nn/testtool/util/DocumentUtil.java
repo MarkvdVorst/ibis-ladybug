@@ -33,6 +33,7 @@ public class DocumentUtil {
 
     private static DocumentBuilder builder;
 
+
     private static DocumentBuilderFactory newDocumentBuilderFactory() { return DocumentBuilderFactory.newInstance(); }
 
     private static void setDocumentBuilder()  {
@@ -47,7 +48,6 @@ public class DocumentUtil {
         setDocumentBuilder();
         return builder;
     }
-
 
     public static Document buildDocument(File file) throws IOException, SAXException {
         Document newDocument = getDocumentBuilder().parse(file);
