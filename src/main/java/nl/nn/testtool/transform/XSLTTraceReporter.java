@@ -100,7 +100,7 @@ public class XSLTTraceReporter {
     private void printImportedXsl() {
         try {
             Document xslDocument = DocumentUtil.buildDocument(xslFile);
-            if(!XmlUtil.fileHasNode("import", xslDocument)) { return; } //If there are no import nodes present in the file, return.
+            if(!XmlUtil.fileHasNode("import", xslDocument)) return; //If there are no import nodes present in the file, return.
 
             NodeList nodeList = XmlUtil.getNodesByXPath("//*[local-name()='import']",xslDocument);
             testTool.startpoint(correlationId, xslFile.getName(), "Imported XSL", "Imported XSL files");

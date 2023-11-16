@@ -37,14 +37,14 @@ public class DocumentUtil {
 
     private static void setDocumentBuilder()  {
         try {
-            builder = newDocumentBuilderFactory().newDocumentBuilder();
+            if (builder == null) builder = newDocumentBuilderFactory().newDocumentBuilder();
         } catch (ParserConfigurationException e) {
             throw new RuntimeException(e);
         }
     }
 
     public static DocumentBuilder getDocumentBuilder() {
-        if (builder == null) {setDocumentBuilder();}
+        setDocumentBuilder();
         return builder;
     }
 
