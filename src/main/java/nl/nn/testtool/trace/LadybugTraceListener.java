@@ -15,8 +15,9 @@
 */
 package nl.nn.testtool.trace;
 
-import java.util.List;
 
 public interface LadybugTraceListener {
+    /**Root trace of the tree that that holds all the template traces.
+     * @return returns the root trace*/
     public TemplateTrace getRootTrace();
 }

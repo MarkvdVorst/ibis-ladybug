@@ -36,25 +36,25 @@ import net.sf.saxon.tree.util.FastStringBuffer;
 import net.sf.saxon.tree.util.Navigator;
 import net.sf.saxon.value.StringValue;
 import net.sf.saxon.value.Whitespace;
-import org.apache.commons.lang.NotImplementedException;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 
+/**The SaxonTemplateTraceListener is a trace listener meant for tracing the transform of XSLT.
+ * This trace listener can be attached to the underlying controller of a SAXON TransformerImpl object.*/
 public class SaxonTemplateTraceListener extends StandardDiagnostics implements TraceListener, LadybugTraceListener {
     @Getter
-    private final TemplateTrace rootTrace;
+    private final TemplateTrace rootTrace = new TemplateTrace();
     private TemplateTrace selectedTrace;
     protected int indent = 0;
     private final int detail = 3; // none=0; low=1; normal=2; high=3
     /*@NotNull*/ private static StringBuffer spaceBuffer = new StringBuffer("                ");
+
+    //needed because the order of the methods to end a trace is reversed for some reason by saxon
     private boolean end;
 
     public SaxonTemplateTraceListener(){
-        this.rootTrace = new TemplateTrace();
         this.selectedTrace = rootTrace;
     }
 
@@ -72,6 +72,8 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
         selectedTrace = templateTrace;
     }
 
+    /**Adds opening attribute of XSLT
+     * @return returns the XSLT namespace stylesheet*/
     protected String getOpeningAttributes() {
         return "xmlns:xsl=\"" + NamespaceConstant.XSLT + '\"';
     }
@@ -252,13 +254,11 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
             String traceId = ((TemplateRule) info).getLineNumber() + "_" + ((TemplateRule) info).getColumnNumber() + "_" + ((TemplateRule) info).getSystemId();
             if(Objects.equals(selectedTrace.getTraceId(), traceId)){
                 end = true;
-                //selectedTrace = selectedTrace.getParentTrace();
             }
         } else if (info instanceof NamedTemplate) {
             String traceId = ((NamedTemplate) info).getLineNumber() + "_" + ((NamedTemplate) info).getColumnNumber() + "_" + ((NamedTemplate) info).getSystemId();
             if(Objects.equals(selectedTrace.getTraceId(), traceId)){
                 end = true;
-                //selectedTrace = selectedTrace.getParentTrace();
             }
         }
     }
@@ -324,12 +324,6 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
                 selectedTrace = selectedTrace.getParentTrace();
                 end = false;
             }
-
-//            String traceId = curr.getLineNumber() + "_" + curr.getColumnNumber() + "_" + curr.getSystemId();
-//            System.out.println(traceId + "\n" + selectedTrace.getTraceId() + "\n");
-//            if(Objects.equals(selectedTrace.getTraceId(), traceId)){
-//                selectedTrace = selectedTrace.getParentTrace();
-//            }
         }
     }
 
@@ -355,16 +349,5 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
     @Override
     @Deprecated
     public void setOutputDestination(Logger stream) {
-        throw new NotImplementedException("This method should not be used");
-    }
-
-    /**
-     * This method is deprecated
-     *
-     * @return nothing
-     */
-    @Deprecated
-    public Logger getOutputDestination() {
-        throw new NotImplementedException("This method should not be used");
     }
 }
