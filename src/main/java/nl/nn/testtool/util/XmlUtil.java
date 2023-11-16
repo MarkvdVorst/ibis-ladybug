@@ -33,10 +33,13 @@ import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 import javax.xml.transform.stream.StreamSource;
+import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpression;
 import javax.xml.xpath.XPathExpressionException;
 
+import org.w3c.dom.Document;
 import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -82,12 +85,30 @@ public class XmlUtil {
 		return new net.sf.saxon.TransformerFactoryImpl();
 	}
 
-	public static DocumentBuilderFactory getDocumentBuilderFactory() {
-		// Deprecated
-		// return new net.sf.saxon.dom.DocumentBuilderFactoryImpl();
-		// Xerces
-		// return new org.apache.xerces.jaxp.DocumentBuilderFactoryImpl();
-		return DocumentBuilderFactory.newInstance();
+	/**
+	 * Searches for the given node in a document
+	 * @param nodeName The name of the node to look for
+	 * @return returns true if the given node exists
+	 */
+	public static boolean fileHasNode(String nodeName, Document doc) {
+		try {
+			if (nodeName.contains(":")) {
+				//if the given node has a namespace prefix, strip the prefix.
+				return getNodesByXPath("//*[local-name()='" + nodeName.substring(nodeName.indexOf(":") + 1) + "']", doc).getLength() != 0;
+			}
+			return getNodesByXPath("//*[local-name()='" + nodeName + "']", doc).getLength() != 0;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * Gets the nodelist from a document with xPath expression
+	 * @param doc document to convert to Nodelist
+	 * @param xPathExpression given xPathExpression to search by
+	 */
+	public static NodeList getNodesByXPath(String xPathExpression, Document doc) throws XPathExpressionException {
+		return (NodeList) createXPathExpression(xPathExpression).evaluate(doc.getDocumentElement(), XPathConstants.NODESET);
 	}
 
 	@SneakyThrows
@@ -100,7 +121,7 @@ public class XmlUtil {
 	}
 
 	public static Node stringToNode(String string) throws SAXException, IOException, ParserConfigurationException {
-		return getDocumentBuilderFactory().newDocumentBuilder()
+		return DocumentUtil.getDocumentBuilder()
 				.parse(new ByteArrayInputStream(string.getBytes())).getDocumentElement();
 	}
 }

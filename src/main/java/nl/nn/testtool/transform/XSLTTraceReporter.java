@@ -20,10 +20,10 @@ import nl.nn.testtool.trace.TemplateTrace;
 import nl.nn.testtool.TestTool;
 import nl.nn.testtool.util.DocumentUtil;
 
+import nl.nn.testtool.util.XmlUtil;
 import org.w3c.dom.*;
 import org.xml.sax.SAXException;
 
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.xpath.*;
 import java.io.*;
 import java.nio.file.Files;
@@ -99,13 +99,10 @@ public class XSLTTraceReporter {
      * */
     private void printImportedXsl() {
         try {
-
             Document xslDocument = DocumentUtil.buildDocument(xslFile);
-            if(!fileHasNode("import", xslDocument)) {
-                return;
-            }
+            if(!XmlUtil.fileHasNode("import", xslDocument)) { return; } //If there are no import nodes present in the file, return.
 
-            NodeList nodeList = getNodesByXPath("//*[local-name()='import']",xslDocument);
+            NodeList nodeList = XmlUtil.getNodesByXPath("//*[local-name()='import']",xslDocument);
             testTool.startpoint(correlationId, xslFile.getName(), "Imported XSL", "Imported XSL files");
             // Loop over all the 'import' nodes (each node references 1 XSL file in its 'href' attribute)
             for (int i = 0; i < nodeList.getLength(); i++) {
@@ -132,23 +129,6 @@ public class XSLTTraceReporter {
         testTool.infopoint(correlationId, xslFile.getName(), filepath.getFileName().toString(), writer.toString());
     }
 
-
-    /**
-     * Searches for the given node
-     * @param nodeName should be the name of the node to look for WITHOUT namespace prefix
-     * @return returns whether given nodes exists
-     */
-    private boolean fileHasNode(String nodeName, Document doc) {
-        try {
-            // Check if a node with the provided name exists is populated
-            if (getNodesByXPath("//*[local-name()='"+ nodeName +"']", doc).getLength() == 0) {
-                return false;
-            }
-            return true;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
 
     /**
      * Prints the transformed xml in an infopoint with the titles
@@ -208,12 +188,12 @@ public class XSLTTraceReporter {
      * Show the given template XSL from all XSL files that contain the given template match
      * @param templateName template match to look for in XSL files
      */
-    private void printTemplateXsl(String templateName) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException {
+    private void printTemplateXsl(String templateName) throws IOException, SAXException, XPathExpressionException {
 
         for (File file : allXSLFiles) {
             boolean hasMatchAttribute = false;
             Document doc = DocumentUtil.buildDocument(file);
-            NodeList nodeList = getNodesByXPath("//*[local-name()='template']", doc);
+            NodeList nodeList = XmlUtil.getNodesByXPath("//*[local-name()='template']", doc);
             StringWriter result = new StringWriter();
 
             for (int i = 0; i < nodeList.getLength(); i++) {
@@ -233,25 +213,12 @@ public class XSLTTraceReporter {
     }
 
     /**
-     * TODO: get input XML of the XSLT step
+     * TODO: get input XML of the XSLT step using XPath
      * Shows the affected XML of the XSLT trace
      * */
-    private StringBuilder getTemplateXML(Node templateNode) {
+    private void getTemplateXML(Node templateNode) {
         try {
             Document doc = DocumentUtil.buildDocument(xmlFile);
-
-            NodeList nodelist = doc.getElementsByTagName("*");
-            Element templateElement = (Element) templateNode;
-            String match = templateElement.getAttribute("match");
-
-            StringBuilder result = new StringBuilder();
-            for (int i = 0; i < nodelist.getLength(); i++) {
-                if (nodelist.item(i).getNodeName().equals(match) || match.equals("/")) {
-                    getNodeIndentation(result, nodelist.item(i), 0, true);
-                    result.append("\n");
-                }
-            }
-            return result;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -294,16 +261,4 @@ public class XSLTTraceReporter {
             result.append("</").append(node.getNodeName()).append(">");
         }
     }
-
-    /**
-     * Gets the nodelist from a document with xPath expression
-     * @param doc document to convert to Nodelist
-     * @param xPathExpression given xPathExpression to search by
-     */
-    private NodeList getNodesByXPath(String xPathExpression, Document doc) throws XPathExpressionException {
-        XPath xpath = XPathFactory.newInstance().newXPath();
-        XPathExpression expression = xpath.compile(xPathExpression);
-        return (NodeList) expression.evaluate(doc.getDocumentElement(), XPathConstants.NODESET);
-    }
-
 }
