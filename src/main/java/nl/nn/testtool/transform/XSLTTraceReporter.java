@@ -32,7 +32,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-public class XslTransformerReporter {
+public class XSLTTraceReporter {
     private final TestTool testTool;
     private final File xmlFile;
     private final File xslFile;
@@ -42,7 +42,7 @@ public class XslTransformerReporter {
     private final String correlationId;
     private final String reportName;
 
-    public XslTransformerReporter(TestTool testTool, File xmlFile, File xslFile, TemplateTrace rootTrace, String xsltResult, String correlationId, String reportName) {
+    public XSLTTraceReporter(TestTool testTool, File xmlFile, File xslFile, TemplateTrace rootTrace, String xsltResult, String correlationId, String reportName) {
         this.testTool = testTool;
         this.xmlFile = xmlFile;
         this.xslFile = xslFile;
@@ -55,7 +55,7 @@ public class XslTransformerReporter {
     }
 
     public static void initiate(TestTool testTool, File xmlFile, File xslFile, TemplateTrace rootTrace, String xsltResult, String correlationId, String reportName){
-        XslTransformerReporter reporter = new XslTransformerReporter(testTool, xmlFile, xslFile, rootTrace, xsltResult, correlationId, reportName);
+        XSLTTraceReporter reporter = new XSLTTraceReporter(testTool, xmlFile, xslFile, rootTrace, xsltResult, correlationId, reportName);
         testTool.startpoint(correlationId, null, reportName, "XSLT Trace");
         reporter.start();
         testTool.endpoint(correlationId, null, reportName, "XSLT Trace");
@@ -93,7 +93,8 @@ public class XslTransformerReporter {
         testTool.endpoint(correlationId, xmlFile.getName(), "Start XSLT", "End of XSLT");
     }
 
-
+    /**If there are XSL files being imported in the head file,
+     * this method will create an import startpoint and show them in that point*/
     private void printImportedXsl() {
         try {
 
@@ -118,6 +119,7 @@ public class XslTransformerReporter {
         }
     }
 
+    /**Reads the file and puts all lines into one string to show the contents in an infopoint*/
     private void writeFileToInfopoint(Path filepath) throws IOException {
         StringWriter writer = new StringWriter();
         for (String xsl : DocumentUtil.readFile(filepath)) {
@@ -127,9 +129,9 @@ public class XslTransformerReporter {
     }
 
 
-    /**
+    /**Searches for the given node
     * @param nodeName should be the name of the node to look for WITHOUT namespace prefix
-    * */
+     * @return returns whether given nodes exists*/
     private boolean fileHasNode(String nodeName, Document doc) {
         try {
             // Check if a node with the provided name exists is populated
@@ -142,16 +144,19 @@ public class XslTransformerReporter {
         }
     }
 
+    /**Prints the transformed xml in an infopoint with the titles*/
     private void printTransformedXml() {
         testTool.infopoint(correlationId, xmlFile.getName(), "XML after full transformation", xsltResult);
     }
 
-    //TODO: nog niet af
+    /**@param trace the trace where the search should start for the recursive method*/
     private void printCompleteTraceFromStack(TemplateTrace trace) {
         String result = getAllTraces(trace);
         testTool.infopoint(correlationId, xslFile.getName(), "Complete XSLT Trace", result);
     }
 
+    /**Recursively going through all traces that are in the child nodes of the given trace object.
+     * @param trace the trace where it looks through the child nodes*/
     private String getAllTraces(TemplateTrace trace){
         StringBuilder result = new StringBuilder();
         if(trace.getChildTraces().isEmpty()) return "";
@@ -162,10 +167,8 @@ public class XslTransformerReporter {
         return result.toString();
     }
 
-    /*
-    * This method iterates over all instances of 'template match' nodes
-    * */
-    //TODO: nog niet af
+    /**This method iterates over all instances of 'template match' nodes recursively
+     * @param trace the trace where it should start looking through the child nodes*/
     private void loopThroughAllTemplates(TemplateTrace trace) {
         try {
             if(trace.getChildTraces().isEmpty()) return;
@@ -187,6 +190,8 @@ public class XslTransformerReporter {
         }
     }
 
+    /**Show the given template XSL from all XSL files that contain the given template match
+     * @param templateName template match to look for in XSL files*/
     private void printTemplateXsl(String templateName) throws ParserConfigurationException, IOException, SAXException, XPathExpressionException {
 
         for (File file : allXSLFiles) {
@@ -211,7 +216,9 @@ public class XslTransformerReporter {
         }
     }
 
-    private StringBuilder getTemplateXml(Node templateNode) {
+    /**Deprecated
+     * Shows the affected XML of the XSLT trace*/
+    private StringBuilder getTemplateXML(Node templateNode) {
         try {
             Document doc = DocumentUtil.buildDocument(xmlFile);
 
@@ -232,6 +239,11 @@ public class XslTransformerReporter {
         }
     }
 
+    /**Converts the node into string
+     * @param indent amount of indents it needs
+     * @param node Node to convert
+     * @param needsIndent True/False if indents should be used
+     * @param result attached stringbuilder to write to*/
     private void getNodeIndentation(StringBuilder result, Node node, int indent, boolean needsIndent) {
         if (needsIndent) {
             for (int i = 0; i < indent; i++) {
@@ -263,6 +275,9 @@ public class XslTransformerReporter {
         }
     }
 
+    /**Gets the nodelist from a document with xPath expression
+     * @param doc document to convert to Nodelist
+     * @param xPathExpression given xPathExpression to search by*/
     private NodeList getNodesByXPath(String xPathExpression, Document doc) throws XPathExpressionException {
         XPath xpath = XPathFactory.newInstance().newXPath();
         XPathExpression expression = xpath.compile(xPathExpression);

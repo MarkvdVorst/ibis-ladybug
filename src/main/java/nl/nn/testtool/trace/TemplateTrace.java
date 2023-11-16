@@ -16,34 +16,27 @@
 package nl.nn.testtool.trace;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
+@Getter
+@NoArgsConstructor
 public class TemplateTrace {
-    @Getter
     @Setter
     private String traceId;
-    @Getter
     private TemplateTrace parentTrace;
-    @Getter
     @Setter
     private String templateMatch;
-    @Getter
     private String templateTrace;
-    @Getter
     @Setter
     private String systemId;
-    @Getter
-    private List<String> traceContext;
-    @Getter
-    private List<TemplateTrace> childTraces;
-    @Getter
+    private final List<String> traceContext = new ArrayList<>();
+    private final List<TemplateTrace> childTraces = new ArrayList<>();
     @Setter
     private String selectedNode;
-    @Getter
     @Setter
     private boolean aBuiltInTemplate;
 
@@ -51,24 +44,17 @@ public class TemplateTrace {
         this.templateMatch = templateMatch;
         this.templateTrace = templateTrace;
         this.systemId = systemId;
-        this.traceContext = new ArrayList<>();
-        this.childTraces = new ArrayList<>();
         this.traceId = id;
         this.parentTrace = parentTrace;
     }
 
     public TemplateTrace(String templateTrace, TemplateTrace parentTrace){
         this.templateTrace = templateTrace;
-        this.traceContext = new ArrayList<>();
-        this.childTraces = new ArrayList<>();
         this.parentTrace = parentTrace;
     }
 
-    public TemplateTrace(){
-        this.traceContext = new ArrayList<>();
-        this.childTraces = new ArrayList<>();
-    }
-
+    /**This method adds a child trace object to the list of child traces
+     * @param trace TemplateTrace object that will be added to child traces*/
     public void addChildtrace(TemplateTrace trace){
         this.childTraces.add(trace);
     }
