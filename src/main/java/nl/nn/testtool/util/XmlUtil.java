@@ -83,6 +83,7 @@ public class XmlUtil {
 	/**
 	 * Searches for the given node in a document
 	 * @param nodeName The name of the node to look for
+	 * @param doc document used to search
 	 * @return returns true if the given node exists
 	 */
 	public static boolean fileHasNode(String nodeName, Document doc) {
@@ -101,6 +102,8 @@ public class XmlUtil {
 	 * Gets the nodelist from a document with xPath expression
 	 * @param doc document to convert to Nodelist
 	 * @param xPathExpression given xPathExpression to search by
+	 * @return return the nodelist from xPathExpression
+	 * @throws XPathExpressionException if there is an error in the XPath expression
 	 */
 	public static NodeList getNodesByXPath(String xPathExpression, Document doc) throws XPathExpressionException {
 		return (NodeList) createXPathExpression(xPathExpression).evaluate(doc.getDocumentElement(), XPathConstants.NODESET);
