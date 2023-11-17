@@ -165,6 +165,11 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
             trace.append(CreateTrace(info, tag, properties, true));
             selectedTrace.addTraceContext(trace + "\n");
         }
+
+        if(!context.getContextItem().getStringValue().isEmpty()){
+            String contextOutput = "GRABBED VALUES: " + context.getContextItem().getStringValue() + "\n";
+            selectedTrace.addTraceContext(contextOutput);
+        }
     }
 
     private String CreateTrace(Traceable info, String tag, Map<String, Object> properties, boolean useIndents){
