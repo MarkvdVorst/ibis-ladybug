@@ -99,7 +99,7 @@ public class XSLTTraceReporter {
      * */
     private void printImportedXsl() {
         try {
-            Document xslDocument = DocumentUtil.buildDocument(xslFile);
+            Document xslDocument = DocumentUtil.getDocumentBuilder().parse(xslFile);
             if(!XmlUtil.fileHasNode("import", xslDocument)) return; //If there are no import nodes present in the file, return.
 
             NodeList nodeList = XmlUtil.getNodesByXPath("//*[local-name()='import']",xslDocument);
@@ -123,7 +123,7 @@ public class XSLTTraceReporter {
      */
     private void writeFileToInfopoint(Path filepath) throws IOException {
         StringWriter writer = new StringWriter();
-        for (String xsl : DocumentUtil.readFile(filepath)) {
+        for (String xsl : Files.readAllLines(filepath)) {
             writer.append(xsl).append("\n");
         }
         testTool.infopoint(correlationId, xslFile.getName(), filepath.getFileName().toString(), writer.toString());
@@ -192,7 +192,7 @@ public class XSLTTraceReporter {
 
         for (File file : allXSLFiles) {
             boolean hasMatchAttribute = false;
-            Document doc = DocumentUtil.buildDocument(file);
+            Document doc = DocumentUtil.getDocumentBuilder().parse(file);
             NodeList nodeList = XmlUtil.getNodesByXPath("//*[local-name()='template']", doc);
             StringWriter result = new StringWriter();
 
@@ -213,12 +213,12 @@ public class XSLTTraceReporter {
     }
 
     /**
-     * TODO: get input XML of the XSLT step using XPath
-     * Shows the affected XML of the XSLT trace
+     * TODO: get input XML of the XSLT step using XPath - Yaseen
      * */
     private void getTemplateXML(Node templateNode) {
         try {
-            Document doc = DocumentUtil.buildDocument(xmlFile);
+            Document doc = DocumentUtil.getDocumentBuilder().parse(xmlFile);
+
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -226,7 +226,7 @@ public class XSLTTraceReporter {
 
     /**
      * Converts the node into string
-     * @param indent amount of indents it needs
+     * @param indent amount of indents (tabs) it needs
      * @param node Node to convert
      * @param needsIndent True/False if indents should be used
      * @param result attached stringbuilder to write to

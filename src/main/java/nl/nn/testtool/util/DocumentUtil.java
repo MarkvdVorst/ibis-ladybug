@@ -17,17 +17,9 @@
 
 package nl.nn.testtool.util;
 
-import org.w3c.dom.Document;
-import org.xml.sax.SAXException;
-
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
 
 public class DocumentUtil {
 
@@ -48,12 +40,4 @@ public class DocumentUtil {
         setDocumentBuilder();
         return builder;
     }
-
-    public static Document buildDocument(File file) throws IOException, SAXException {
-        Document newDocument = getDocumentBuilder().parse(file);
-        newDocument.getDocumentElement().normalize();
-        return newDocument;
-    }
-
-    public static List<String> readFile(Path filepath) throws IOException { return Files.readAllLines(filepath); }
 }

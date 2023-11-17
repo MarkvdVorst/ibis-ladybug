@@ -73,7 +73,7 @@ public class XmlUtil {
 		} catch (SAXException | IOException | ParserConfigurationException e) {
 			return false;
 		}
-        return true;
+		return true;
 	}
 
 	public static TransformerFactory getTransformerFactory() {
@@ -82,8 +82,8 @@ public class XmlUtil {
 
 	/**
 	 * Searches for the given node in a document
-	 * @param nodeName The name of the node to look for
-	 * @param doc document used to search
+	 * @param nodeName The name of the node as a String
+	 * @param doc The Document in which to look for the node
 	 * @return returns true if the given node exists
 	 */
 	public static boolean fileHasNode(String nodeName, Document doc) {
