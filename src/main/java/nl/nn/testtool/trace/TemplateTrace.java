@@ -1,5 +1,5 @@
 /*
-   Copyright 2022-2023 WeAreFrank!
+   Copyright 2023 WeAreFrank!
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,71 +16,70 @@
 package nl.nn.testtool.trace;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
 
+@Getter
+@NoArgsConstructor
 public class TemplateTrace {
-    @Getter
     @Setter
-    private String templateName;
-    @Getter
+    private String traceId;
+    private TemplateTrace parentTrace;
     @Setter
-    private String parentTrace;
-    @Getter
+    private String templateMatch;
+    private String templateTrace;
     @Setter
     private String systemId;
-    @Getter
+    private final List<String> traceContext = new ArrayList<>();
+    private final List<TemplateTrace> childTraces = new ArrayList<>();
+    @Setter
     private String selectedNode;
-    @Getter
-    private List<String> childrenTraces;
+    @Setter
+    private boolean aBuiltInTemplate;
+    @Setter
+    private int lineNumber;
+    @Setter
+    private int columnNumber;
 
-    public TemplateTrace(String templateName, String systemId, String parentTrace) {
-        this.templateName = templateName;
-        this.parentTrace = parentTrace;
+    public TemplateTrace(String templateMatch, String systemId, String templateTrace, String id, TemplateTrace parentTrace) {
+        this.templateMatch = templateMatch;
+        this.templateTrace = templateTrace;
         this.systemId = systemId;
-        this.childrenTraces = new ArrayList<>();
-    }
-
-    public TemplateTrace(String parentTrace){
+        this.traceId = id;
         this.parentTrace = parentTrace;
-        this.childrenTraces = new ArrayList<>();
     }
 
-    /**@param nodeName selected node for the trace*/
-    public void setSelectedNode(String nodeName){
-        this.selectedNode = nodeName;
+    public TemplateTrace(String templateTrace, TemplateTrace parentTrace){
+        this.templateTrace = templateTrace;
+        this.parentTrace = parentTrace;
+    }
+
+    /**This method adds a child trace object to the list of child traces
+     * @param trace TemplateTrace object that will be added to child traces*/
+    public void addChildtrace(TemplateTrace trace){
+        this.childTraces.add(trace);
     }
 
     /**This method adds a trace to the children traces of the parent template trace
-     * @param childTrace adds a child trace of this parent trace*/
-    public void AddChildTrace(String childTrace) {
-        childrenTraces.add(childTrace);
+     * @param context adds a context trace to this trace*/
+    public void addTraceContext(String context) {
+        this.traceContext.add(context);
     }
 
-    /**@param index of child trace
-     * @return Get a child trace from a specific index*/
-    public String getChildTrace(int index) {
-        return childrenTraces.get(index);
-    }
-
-    /**Empties the child traces for this template trace*/
-    public void Flush() {
-        childrenTraces = new ArrayList<>();
-    }
-
-    /**@param showSeperator determines whether it shows a line to separate the traces.
+    /**@param showSeparator determines whether it shows a line to separate the traces.
      * @return Returns a string that holds the complete trace of the transform*/
-    public String getWholeTrace(boolean showSeperator){
+    public String getWholeTrace(boolean showSeparator){
         StringBuilder result = new StringBuilder();
 
-        if(showSeperator) {
+        if(showSeparator) {
             result.append("--------------------------------------------New template being applied--------------------------------------------\n");
         }
-        result.append(parentTrace);
+        result.append(templateTrace);
 
-        for (String childrenTrace : childrenTraces) {
+        for (String childrenTrace : traceContext) {
             result.append(childrenTrace);
         }
 

@@ -1,5 +1,5 @@
 /*
-   Copyright 2022-2023 WeAreFrank!
+   Copyright 2023 WeAreFrank!
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -36,22 +36,26 @@ import net.sf.saxon.tree.util.FastStringBuffer;
 import net.sf.saxon.tree.util.Navigator;
 import net.sf.saxon.value.StringValue;
 import net.sf.saxon.value.Whitespace;
-import org.apache.commons.lang.NotImplementedException;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 
+/**The SaxonTemplateTraceListener is a trace listener meant for tracing the transform of XSLT.
+ * This trace listener can be attached to the underlying controller of a SAXON TransformerImpl object.*/
 public class SaxonTemplateTraceListener extends StandardDiagnostics implements TraceListener, LadybugTraceListener {
     @Getter
-    private final List<TemplateTrace> templateTraces;
+    private final TemplateTrace rootTrace = new TemplateTrace();
+    private TemplateTrace selectedTrace;
     protected int indent = 0;
     private final int detail = 3; // none=0; low=1; normal=2; high=3
     /*@NotNull*/ private static StringBuffer spaceBuffer = new StringBuffer("                ");
 
+    //needed because the order of the methods to end a trace is reversed for some reason by saxon
+    private boolean end;
+
     public SaxonTemplateTraceListener(){
-        this.templateTraces = new ArrayList<>();
+        this.selectedTrace = rootTrace;
     }
 
     /**
@@ -61,11 +65,15 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
      */
     @Override
     public void open(Controller controller) {
-        this.templateTraces.add(new TemplateTrace("<trace " +
-                "saxon-version=\"" + Version.getProductVersion() + "\" " +
-                getOpeningAttributes() + ">\n"));
+        String trace = "<trace " + "saxon-version=\"" + Version.getProductVersion() + "\" " + getOpeningAttributes() + ">\n";
+        TemplateTrace templateTrace = new TemplateTrace(trace, selectedTrace);
+
+        selectedTrace.addChildtrace(templateTrace);
+        selectedTrace = templateTrace;
     }
 
+    /**Adds opening attribute of XSLT
+     * @return returns the XSLT namespace stylesheet*/
     protected String getOpeningAttributes() {
         return "xmlns:xsl=\"" + NamespaceConstant.XSLT + '\"';
     }
@@ -76,7 +84,8 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
     @Override
     public void close() {
         indent--;
-        templateTraces.get(0).AddChildTrace("</trace>");
+
+        selectedTrace.addTraceContext("</trace>");
     }
 
     /**
@@ -100,55 +109,72 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
             if (expr instanceof FixedElement) {
                 String tag = "LRE";
                 trace.append(CreateTrace(info, tag, properties, true));
-                templateTraces.get(templateTraces.size() -1).AddChildTrace(trace + "\n");
+                selectedTrace.addTraceContext(trace + "\n");
             } else if (expr instanceof FixedAttribute) {
                 String tag = "ATTR";
                 trace.append(CreateTrace(info, tag, properties, true));
-                templateTraces.get(templateTraces.size() -1).AddChildTrace(trace + "\n");
+                selectedTrace.addTraceContext(trace + "\n");
             } else if (expr instanceof LetExpression) {
                 String tag = "xsl:variable";
                 trace.append(CreateTrace(info, tag, properties, true));
-                templateTraces.get(templateTraces.size() -1).AddChildTrace(trace + "\n");
+                selectedTrace.addTraceContext(trace + "\n");
             } else if (expr.isCallOn(Trace.class)) {
                 String tag = "fn:trace";
                 trace.append(CreateTrace(info, tag, properties, true));
-                templateTraces.get(templateTraces.size() -1).AddChildTrace(trace + "\n");
+                selectedTrace.addTraceContext(trace + "\n");
             } else {
                 trace.append(expr.getExpressionName());
-                templateTraces.get(this.templateTraces.size() - 1).AddChildTrace(trace + "\n");
+                selectedTrace.addTraceContext(trace + "\n");
             }
         } else if (info instanceof UserFunction) {
             String tag = "xsl:function";
             trace.append(CreateTrace(info, tag, properties, true));
-            templateTraces.get(templateTraces.size() -1).AddChildTrace(trace + "\n");
+            selectedTrace.addTraceContext(trace + "\n");
         } else if (info instanceof TemplateRule) {
+            String traceId = ((TemplateRule) info).getLineNumber() + "_" + ((TemplateRule) info).getColumnNumber() + "_" + ((TemplateRule) info).getSystemId();
+            selectedTrace.setTraceId(traceId);
+            selectedTrace.setSystemId(((TemplateRule) info).getSystemId());
+            selectedTrace.setTemplateMatch(((TemplateRule) info).getMatchPattern().getOriginalText());
+
+            selectedTrace.setLineNumber(((TemplateRule) info).getLineNumber());
+            selectedTrace.setColumnNumber(((TemplateRule) info).getColumnNumber());
+
             String tag = "xsl:template match=" + ((TemplateRule) info).getMatchPattern().getOriginalText();
             trace.append(CreateTrace(info, tag, properties, false));
-            templateTraces.get(templateTraces.size() - 1).AddChildTrace(trace + "\n");
-            templateTraces.get(templateTraces.size() - 1).setTemplateName(((TemplateRule) info).getMatchPattern().getOriginalText());
-            templateTraces.get(templateTraces.size()- 1).setSystemId(((TemplateRule) info).getSystemId());
+            selectedTrace.addTraceContext(trace + "\n");
         } else if (info instanceof NamedTemplate) {
+            String traceId = ((NamedTemplate) info).getLineNumber() + "_" + ((NamedTemplate) info).getColumnNumber() + "_" + ((NamedTemplate) info).getSystemId();
+            selectedTrace.setTraceId(traceId);
+            selectedTrace.setSystemId(((NamedTemplate) info).getSystemId());
+            selectedTrace.setTemplateMatch(((NamedTemplate) info).getTemplateName().getDisplayName());
+
+            selectedTrace.setLineNumber(((NamedTemplate) info).getLineNumber());
+            selectedTrace.setColumnNumber(((NamedTemplate) info).getColumnNumber());
+
             String tag = "xsl:template match=" + ((NamedTemplate) info).getTemplateName().getDisplayName();
             trace.append(CreateTrace(info, tag, properties, false));
-            templateTraces.get(templateTraces.size() - 1).AddChildTrace(trace + "\n");
-            templateTraces.get(templateTraces.size() - 1).setTemplateName(((NamedTemplate) info).getTemplateName().getDisplayName());
-            templateTraces.get(templateTraces.size()- 1).setSystemId(((NamedTemplate) info).getSystemId());
+            selectedTrace.addTraceContext(trace + "\n");
         } else if (info instanceof GlobalParam) {
             String tag = "xsl:param";
             trace.append(CreateTrace(info, tag, properties, true));
-            templateTraces.get(templateTraces.size() -1).AddChildTrace(trace + "\n");
+            selectedTrace.addTraceContext(trace + "\n");
         } else if (info instanceof GlobalVariable) {
             String tag = "xsl:variable";
             trace.append(CreateTrace(info, tag, properties, true));
-            templateTraces.get(templateTraces.size() -1).AddChildTrace(trace + "\n");
+            selectedTrace.addTraceContext(trace + "\n");
         } else if (info instanceof Trace) {
             String tag = "fn:trace";
             trace.append(CreateTrace(info, tag, properties, true));
-            templateTraces.get(templateTraces.size() -1).AddChildTrace(trace + "\n");
+            selectedTrace.addTraceContext(trace + "\n");
         } else {
             String tag = "misc";
             trace.append(CreateTrace(info, tag, properties, true));
-            templateTraces.get(templateTraces.size() -1).AddChildTrace(trace + "\n");
+            selectedTrace.addTraceContext(trace + "\n");
+        }
+
+        if(!context.getContextItem().getStringValue().isEmpty()){
+            String contextOutput = "CONTEXT: " + context.getContextItem().getStringValue() + "\n";
+            selectedTrace.addTraceContext(contextOutput);
         }
     }
 
@@ -234,6 +260,18 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
         if (isApplicable(info)) {
             indent--;
         }
+
+        if (info instanceof TemplateRule) {
+            String traceId = ((TemplateRule) info).getLineNumber() + "_" + ((TemplateRule) info).getColumnNumber() + "_" + ((TemplateRule) info).getSystemId();
+            if(Objects.equals(selectedTrace.getTraceId(), traceId)){
+                end = true;
+            }
+        } else if (info instanceof NamedTemplate) {
+            String traceId = ((NamedTemplate) info).getLineNumber() + "_" + ((NamedTemplate) info).getColumnNumber() + "_" + ((NamedTemplate) info).getSystemId();
+            if(Objects.equals(selectedTrace.getTraceId(), traceId)){
+                end = true;
+            }
+        }
     }
 
     /**
@@ -268,10 +306,13 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
     public void startCurrentItem(Item item) {
         if (item instanceof TinyElementImpl && detail > 0) {
             TinyElementImpl curr = (TinyElementImpl) item;
-            this.templateTraces.add(new TemplateTrace(
-                    "<source node=\"" + Navigator.getPath(curr)
+            String trace = "<source node=\"" + Navigator.getPath(curr)
                     + "\" file=\"" + curr.getSystemId()
-                    + "\">\n"));
+                    + "\">\n";
+            TemplateTrace templateTrace = new TemplateTrace(trace, selectedTrace);
+
+            selectedTrace.addChildtrace(templateTrace);
+            selectedTrace = templateTrace;
         }
         indent++;
     }
@@ -286,8 +327,14 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
         indent--;
         if (item instanceof NodeInfo && detail > 0) {
             NodeInfo curr = (NodeInfo) item;
-            templateTraces.get(templateTraces.size() - 1).AddChildTrace("</source><!-- " +
-                    Navigator.getPath(curr) + " -->");
+
+            String trace = "</source><!-- " + Navigator.getPath(curr) + " -->";
+            selectedTrace.addTraceContext(trace);
+
+            if(end){
+                selectedTrace = selectedTrace.getParentTrace();
+                end = false;
+            }
         }
     }
 
@@ -313,16 +360,5 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
     @Override
     @Deprecated
     public void setOutputDestination(Logger stream) {
-        throw new NotImplementedException("This method should not be used");
-    }
-
-    /**
-     * This method is deprecated
-     *
-     * @return nothing
-     */
-    @Deprecated
-    public Logger getOutputDestination() {
-        throw new NotImplementedException("This method should not be used");
     }
 }

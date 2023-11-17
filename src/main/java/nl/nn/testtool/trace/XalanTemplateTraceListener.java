@@ -1,5 +1,5 @@
 /*
-   Copyright 2022-2023 WeAreFrank!
+   Copyright 2023 WeAreFrank!
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 package nl.nn.testtool.trace;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import org.apache.xalan.templates.Constants;
 import org.apache.xalan.templates.ElemTemplate;
 import org.apache.xalan.templates.ElemTemplateElement;
@@ -29,13 +30,18 @@ import org.w3c.dom.Node;
 import javax.xml.transform.SourceLocator;
 import javax.xml.transform.TransformerException;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Objects;
 
-public class XalanTemplateTraceListener implements TraceListener, LadybugTraceListener {
+public class XalanTemplateTraceListener implements TraceListenerEx2, LadybugTraceListener {
 
     @Getter
-    private final List<TemplateTrace> templateTraces;
+    private final TemplateTrace rootTrace = new TemplateTrace();
+
+    private TemplateTrace selectedTrace;
+
+    public XalanTemplateTraceListener(){
+        selectedTrace = rootTrace;
+    }
 
     /**
      * This needs to be set to true if the listener is to print an event whenever a template is invoked.
@@ -57,35 +63,35 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
      */
     public boolean m_traceSelection = false;
 
-    public XalanTemplateTraceListener() {
-        this.templateTraces = new ArrayList<>();
-    }
 
+    /**Called when a new XSLT 1.0 event starts
+     *@param ev Contains information about the XSLT 1.0 event*/
     @Override
     public void trace(TracerEvent ev) {
         StringBuilder trace = new StringBuilder();
         switch (ev.m_styleNode.getXSLToken()) {
             case Constants.ELEMNAME_TEXTLITERALRESULT:
-                if (m_traceElements) {
-
-                    //changed to just file name. reading the whole systemid everytime is hard to read
-                    String systemId = ev.m_styleNode.getSystemId();
-                    if (systemId != null) {
-                        File file = new File(systemId);
-                        trace.append("\n").append(file.getName()).append(" Line #").append(ev.m_styleNode.getLineNumber()).append(", ").append("Column #").append(ev.m_styleNode.getColumnNumber()).append(" -- ").append(ev.m_styleNode.getNodeName()).append(": ");
-                    } else {
-                        trace.append("\n").append("null");
-                    }
-
-                    ElemTextLiteral etl = (ElemTextLiteral) ev.m_styleNode;
-                    String chars = new String(etl.getChars(), 0, etl.getChars().length);
-
-                    trace.append("\n").append("    ").append(chars.trim());
-                    templateTraces.get(templateTraces.size() - 1).AddChildTrace(trace.toString());
-                }
+//                if (m_traceElements) {
+//
+//                    //changed to just file name. reading the whole systemid everytime is hard to read
+//                    String systemId = ev.m_styleNode.getSystemId();
+//                    if (systemId != null) {
+//                        File file = new File(systemId);
+//                        trace.append("\n").append(file.getName()).append(" Line #").append(ev.m_styleNode.getLineNumber()).append(", ").append("Column #").append(ev.m_styleNode.getColumnNumber()).append(" -- ").append(ev.m_styleNode.getNodeName()).append(": ");
+//                    } else {
+//                        trace.append("\n").append("null");
+//                    }
+//
+//                    ElemTextLiteral etl = (ElemTextLiteral) ev.m_styleNode;
+//                    String chars = new String(etl.getChars(), 0, etl.getChars().length);
+//
+//                    trace.append("\n").append("    ").append(chars.trim());
+//                    selectedTrace.addTraceContext(trace.toString());
+//                }
                 break;
             case Constants.ELEMNAME_TEMPLATE:
                 if (m_traceTemplates || m_traceElements) {
+                    boolean isBuiltIn = false;
                     ElemTemplate et = (ElemTemplate) ev.m_styleNode;
 
                     //showing systemid once for file location
@@ -93,16 +99,19 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
                         trace.append("Now using: " + et.getSystemId());
                     }else{
                         trace.append("Now using: built-in-rule");
+                        isBuiltIn = true;
                     }
 
                     //changed to just file name. reading the whole systemid everytime is hard to read
                     String systemId = ev.m_styleNode.getSystemId();
                     if (systemId != null) {
                         File file = new File(systemId);
-                        trace.append("\n").append(file.getName() + " Line #" + et.getLineNumber() + ", " + "Column #"
-                                + et.getColumnNumber() + ": " + et.getNodeName() + " ");
+                        trace.append("\n").append(file.getName()).append(" Line #").append(et.getLineNumber())
+                                .append(", ").append("Column #").append(et.getColumnNumber()).append(": ")
+                                .append(et.getNodeName()).append(" ");
                     } else {
                         trace.append("\n").append("built-in-rule ");
+                        isBuiltIn = true;
                     }
 
                     if (null != et.getMatch()) {
@@ -114,7 +123,23 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
                     }
 
                     trace.append("\n");
-                    templateTraces.add(new TemplateTrace(et.getMatch().getPatternString(), et.getSystemId(), trace.toString()));
+
+                    //A trace id based on the line number, column number and system id is made which will be attached
+                    //to the trace object to later be reviewed to see if the selected trace needs to be changed
+                    //to the parent trace
+                    String traceId = et.getLineNumber() + "_" + et.getColumnNumber() + "_" + et.getSystemId();
+                    TemplateTrace templateTrace = new TemplateTrace(et.getMatch().getPatternString(), et.getSystemId(), trace.toString(), traceId, selectedTrace);
+
+                    templateTrace.setLineNumber(et.getLineNumber());
+                    templateTrace.setColumnNumber(et.getColumnNumber());
+
+                    if(isBuiltIn){
+                        templateTrace.setABuiltInTemplate(true);
+                    }
+                    selectedTrace.addChildtrace(templateTrace);
+                    if(!isBuiltIn) {
+                        selectedTrace = templateTrace;
+                    }
                 }
                 break;
             default:
@@ -123,14 +148,19 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
                     String systemId = ev.m_styleNode.getSystemId();
                     if (systemId != null) {
                         File file = new File(systemId);
-                        trace.append("\n").append(file.getName()).append(" Line #").append(ev.m_styleNode.getLineNumber()).append(", ").append("Column #").append(ev.m_styleNode.getColumnNumber()).append(": ").append(ev.m_styleNode.getNodeName());
+                        trace.append("\n").append(file.getName()).append(" Line #").append(ev.m_styleNode.getLineNumber()).append(", ")
+                                .append("Column #").append(ev.m_styleNode.getColumnNumber()).append(": ").append("<")
+                                .append(ev.m_styleNode.getNodeName()).append(">");
                     } else {
                         trace.append("\n").append("null");
                     }
+                    selectedTrace.addTraceContext(trace.toString());
                 }
         }
     }
 
+    /**Gets called when a new node is selected for the XSLT
+     * @param ev information about the selected node*/
     @Override
     public void selected(SelectionEvent ev) throws TransformerException {
         if (m_traceSelection) {
@@ -151,13 +181,13 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
             if (locator != null) {
                 //changed to just file name. reading the whole systemid everytime is hard to read
                 File file = new File(locator.getSystemId());
-                trace.append("\n").append("Selected source node '").append(sourceNode.getNodeName()).append("', at "
-                        //+ locator);
-                ).append(file.getName());
-                templateTraces.get(templateTraces.size() - 1).setSelectedNode(sourceNode.getNodeName());
+                trace.append("\n").append("Selected source node '").append(sourceNode.getNodeName()).append("', at ")
+                        .append(file.getName());
+
+                selectedTrace.setSelectedNode(sourceNode.getNodeName());
             } else {
                 trace.append("\n").append("Selected source node '").append(sourceNode.getNodeName()).append("'");
-                templateTraces.get(templateTraces.size() - 1).setSelectedNode(sourceNode.getNodeName());
+                selectedTrace.setSelectedNode(sourceNode.getNodeName());
             }
 
             if (ev.m_styleNode.getLineNumber() == 0) {
@@ -182,7 +212,6 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
                 String systemId = ev.m_styleNode.getSystemId();
                 File file = new File(systemId);
 
-                //ev.m_styleNode.getSystemId()
                 trace.append(file.getName()).append(" Line #").append(ev.m_styleNode.getLineNumber()).append(", ").append("Column #").append(ev.m_styleNode.getColumnNumber()).append(": ").append(ete.getNodeName()).append(", ").append(ev.m_attributeName).append("='").append(ev.m_xpath.getPatternString()).append("': ");
             }
 
@@ -214,15 +243,14 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
                     trace.append("\n").append("     [Could not find match for " + ev.m_attributeName + "=" + ev.m_xpath.getPatternString() + "]");
                     trace.append("\n").append("     [empty node list]");
                 } else {
-                    while (DTM.NULL != pos) {
-                        // m_pw.println("     " + ev.m_processor.getXPathContext().getDTM(pos).getNode(pos));
-                        DTM dtm = ev.m_processor.getXPathContext().getDTM(pos);
-                        trace.append("     ");
-                        trace.append(Integer.toHexString(pos));
-                        trace.append(": ");
-                        trace.append("\n").append(dtm.getNodeName(pos));
-                        pos = clone.nextNode();
-                    }
+//                    while (DTM.NULL != pos) {
+//                        DTM dtm = ev.m_processor.getXPathContext().getDTM(pos);
+//                        trace.append("     ");
+//                        trace.append(Integer.toHexString(pos));
+//                        trace.append(": ");
+//                        trace.append("\n").append(dtm.getNodeName(pos));
+//                        pos = clone.nextNode();
+//                    }
                 }
 
                 // Restore the initial state of the iterator, part of fix for bug#16222.
@@ -234,10 +262,12 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
                 trace.append("\n").append(ev.m_selection.str());
             }
 
-            templateTraces.get(templateTraces.size() - 1).AddChildTrace(trace.toString());
+            selectedTrace.addTraceContext(trace.toString());
         }
     }
 
+    /**Whenever a value from XML is grabbed, affected or changed
+     * @param ev information about the affected value*/
     @Override
     public void generated(GenerateEvent ev) {
         if (m_traceGeneration) {
@@ -250,10 +280,10 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
                     trace.append("\n").append("ENDDOCUMENT");
                     break;
                 case SerializerTrace.EVENTTYPE_STARTELEMENT:
-                    trace.append("\n").append("STARTELEMENT: ").append(ev.m_name);
+                    trace.append("\n").append("STARTELEMENT: ").append("<").append(ev.m_name).append(">");
                     break;
                 case SerializerTrace.EVENTTYPE_ENDELEMENT:
-                    trace.append("\n").append("ENDELEMENT: ").append(ev.m_name);
+                    trace.append("\n").append("ENDELEMENT: ").append("</").append(ev.m_name).append(">");
                     break;
                 case SerializerTrace.EVENTTYPE_CHARACTERS: {
                     String chars = new String(ev.m_characters, ev.m_start, ev.m_length);
@@ -280,7 +310,33 @@ public class XalanTemplateTraceListener implements TraceListener, LadybugTraceLi
                     trace.append("\n").append("IGNORABLEWHITESPACE");
                     break;
             }
-            templateTraces.get(templateTraces.size() - 1).AddChildTrace(trace.toString());
+            selectedTrace.addTraceContext(trace.toString());
         }
+    }
+
+
+    /**Called to show the end of the trace. The selected trace will be changed to the parent of the current selected
+     * trace. It is only set to the parent trace if the trace id of the current selected trace is identical to the
+     * trace id of the tracer event.
+     * @param ev information about the trace*/
+    @Override
+    public void traceEnd(TracerEvent ev) {
+        StringBuilder trace = new StringBuilder();
+        if(ev.m_styleNode.getXSLToken() == Constants.ELEMNAME_TEMPLATE){
+            if (m_traceTemplates || m_traceElements) {
+                ElemTemplate et = (ElemTemplate) ev.m_styleNode;
+
+                String traceId = et.getLineNumber() + "_" + et.getColumnNumber() + "_" + et.getSystemId();
+
+                if(Objects.equals(selectedTrace.getTraceId(), traceId)){
+                    selectedTrace = selectedTrace.getParentTrace();
+                }
+            }
+        }
+    }
+
+    /**Deprecated*/
+    @Override
+    public void selectEnd(EndSelectionEvent endSelectionEvent) throws TransformerException {
     }
 }
