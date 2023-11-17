@@ -39,6 +39,10 @@ public class TemplateTrace {
     private String selectedNode;
     @Setter
     private boolean aBuiltInTemplate;
+    @Setter
+    private int lineNumber;
+    @Setter
+    private int columnNumber;
 
     public TemplateTrace(String templateMatch, String systemId, String templateTrace, String id, TemplateTrace parentTrace) {
         this.templateMatch = templateMatch;
