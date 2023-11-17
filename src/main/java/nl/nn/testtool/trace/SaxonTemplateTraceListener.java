@@ -136,6 +136,9 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
             selectedTrace.setSystemId(((TemplateRule) info).getSystemId());
             selectedTrace.setTemplateMatch(((TemplateRule) info).getMatchPattern().getOriginalText());
 
+            selectedTrace.setLineNumber(((TemplateRule) info).getLineNumber());
+            selectedTrace.setColumnNumber(((TemplateRule) info).getColumnNumber());
+
             String tag = "xsl:template match=" + ((TemplateRule) info).getMatchPattern().getOriginalText();
             trace.append(CreateTrace(info, tag, properties, false));
             selectedTrace.addTraceContext(trace + "\n");
@@ -144,6 +147,9 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
             selectedTrace.setTraceId(traceId);
             selectedTrace.setSystemId(((NamedTemplate) info).getSystemId());
             selectedTrace.setTemplateMatch(((NamedTemplate) info).getTemplateName().getDisplayName());
+
+            selectedTrace.setLineNumber(((NamedTemplate) info).getLineNumber());
+            selectedTrace.setColumnNumber(((NamedTemplate) info).getColumnNumber());
 
             String tag = "xsl:template match=" + ((NamedTemplate) info).getTemplateName().getDisplayName();
             trace.append(CreateTrace(info, tag, properties, false));
@@ -164,6 +170,11 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
             String tag = "misc";
             trace.append(CreateTrace(info, tag, properties, true));
             selectedTrace.addTraceContext(trace + "\n");
+        }
+
+        if(!context.getContextItem().getStringValue().isEmpty()){
+            String contextOutput = "CONTEXT: " + context.getContextItem().getStringValue() + "\n";
+            selectedTrace.addTraceContext(contextOutput);
         }
     }
 

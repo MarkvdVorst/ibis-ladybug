@@ -71,23 +71,23 @@ public class XalanTemplateTraceListener implements TraceListenerEx2, LadybugTrac
         StringBuilder trace = new StringBuilder();
         switch (ev.m_styleNode.getXSLToken()) {
             case Constants.ELEMNAME_TEXTLITERALRESULT:
-                if (m_traceElements) {
-
-                    //changed to just file name. reading the whole systemid everytime is hard to read
-                    String systemId = ev.m_styleNode.getSystemId();
-                    if (systemId != null) {
-                        File file = new File(systemId);
-                        trace.append("\n").append(file.getName()).append(" Line #").append(ev.m_styleNode.getLineNumber()).append(", ").append("Column #").append(ev.m_styleNode.getColumnNumber()).append(" -- ").append(ev.m_styleNode.getNodeName()).append(": ");
-                    } else {
-                        trace.append("\n").append("null");
-                    }
-
-                    ElemTextLiteral etl = (ElemTextLiteral) ev.m_styleNode;
-                    String chars = new String(etl.getChars(), 0, etl.getChars().length);
-
-                    trace.append("\n").append("    ").append(chars.trim());
-                    selectedTrace.addTraceContext(trace.toString());
-                }
+//                if (m_traceElements) {
+//
+//                    //changed to just file name. reading the whole systemid everytime is hard to read
+//                    String systemId = ev.m_styleNode.getSystemId();
+//                    if (systemId != null) {
+//                        File file = new File(systemId);
+//                        trace.append("\n").append(file.getName()).append(" Line #").append(ev.m_styleNode.getLineNumber()).append(", ").append("Column #").append(ev.m_styleNode.getColumnNumber()).append(" -- ").append(ev.m_styleNode.getNodeName()).append(": ");
+//                    } else {
+//                        trace.append("\n").append("null");
+//                    }
+//
+//                    ElemTextLiteral etl = (ElemTextLiteral) ev.m_styleNode;
+//                    String chars = new String(etl.getChars(), 0, etl.getChars().length);
+//
+//                    trace.append("\n").append("    ").append(chars.trim());
+//                    selectedTrace.addTraceContext(trace.toString());
+//                }
                 break;
             case Constants.ELEMNAME_TEMPLATE:
                 if (m_traceTemplates || m_traceElements) {
@@ -106,8 +106,9 @@ public class XalanTemplateTraceListener implements TraceListenerEx2, LadybugTrac
                     String systemId = ev.m_styleNode.getSystemId();
                     if (systemId != null) {
                         File file = new File(systemId);
-                        trace.append("\n").append(file.getName() + " Line #" + et.getLineNumber() + ", " + "Column #"
-                                + et.getColumnNumber() + ": " + et.getNodeName() + " ");
+                        trace.append("\n").append(file.getName()).append(" Line #").append(et.getLineNumber())
+                                .append(", ").append("Column #").append(et.getColumnNumber()).append(": ")
+                                .append(et.getNodeName()).append(" ");
                     } else {
                         trace.append("\n").append("built-in-rule ");
                         isBuiltIn = true;
@@ -128,6 +129,10 @@ public class XalanTemplateTraceListener implements TraceListenerEx2, LadybugTrac
                     //to the parent trace
                     String traceId = et.getLineNumber() + "_" + et.getColumnNumber() + "_" + et.getSystemId();
                     TemplateTrace templateTrace = new TemplateTrace(et.getMatch().getPatternString(), et.getSystemId(), trace.toString(), traceId, selectedTrace);
+
+                    templateTrace.setLineNumber(et.getLineNumber());
+                    templateTrace.setColumnNumber(et.getColumnNumber());
+
                     if(isBuiltIn){
                         templateTrace.setABuiltInTemplate(true);
                     }
@@ -143,7 +148,9 @@ public class XalanTemplateTraceListener implements TraceListenerEx2, LadybugTrac
                     String systemId = ev.m_styleNode.getSystemId();
                     if (systemId != null) {
                         File file = new File(systemId);
-                        trace.append("\n").append(file.getName()).append(" Line #").append(ev.m_styleNode.getLineNumber()).append(", ").append("Column #").append(ev.m_styleNode.getColumnNumber()).append(": ").append(ev.m_styleNode.getNodeName());
+                        trace.append("\n").append(file.getName()).append(" Line #").append(ev.m_styleNode.getLineNumber()).append(", ")
+                                .append("Column #").append(ev.m_styleNode.getColumnNumber()).append(": ").append("<")
+                                .append(ev.m_styleNode.getNodeName()).append(">");
                     } else {
                         trace.append("\n").append("null");
                     }
@@ -236,14 +243,14 @@ public class XalanTemplateTraceListener implements TraceListenerEx2, LadybugTrac
                     trace.append("\n").append("     [Could not find match for " + ev.m_attributeName + "=" + ev.m_xpath.getPatternString() + "]");
                     trace.append("\n").append("     [empty node list]");
                 } else {
-                    while (DTM.NULL != pos) {
-                        DTM dtm = ev.m_processor.getXPathContext().getDTM(pos);
-                        trace.append("     ");
-                        trace.append(Integer.toHexString(pos));
-                        trace.append(": ");
-                        trace.append("\n").append(dtm.getNodeName(pos));
-                        pos = clone.nextNode();
-                    }
+//                    while (DTM.NULL != pos) {
+//                        DTM dtm = ev.m_processor.getXPathContext().getDTM(pos);
+//                        trace.append("     ");
+//                        trace.append(Integer.toHexString(pos));
+//                        trace.append(": ");
+//                        trace.append("\n").append(dtm.getNodeName(pos));
+//                        pos = clone.nextNode();
+//                    }
                 }
 
                 // Restore the initial state of the iterator, part of fix for bug#16222.
@@ -273,10 +280,10 @@ public class XalanTemplateTraceListener implements TraceListenerEx2, LadybugTrac
                     trace.append("\n").append("ENDDOCUMENT");
                     break;
                 case SerializerTrace.EVENTTYPE_STARTELEMENT:
-                    trace.append("\n").append("STARTELEMENT: ").append(ev.m_name);
+                    trace.append("\n").append("STARTELEMENT: ").append("<").append(ev.m_name).append(">");
                     break;
                 case SerializerTrace.EVENTTYPE_ENDELEMENT:
-                    trace.append("\n").append("ENDELEMENT: ").append(ev.m_name);
+                    trace.append("\n").append("ENDELEMENT: ").append("</").append(ev.m_name).append(">");
                     break;
                 case SerializerTrace.EVENTTYPE_CHARACTERS: {
                     String chars = new String(ev.m_characters, ev.m_start, ev.m_length);

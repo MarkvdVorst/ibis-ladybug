@@ -40,9 +40,8 @@ public class XSLTTraceReporter {
     private final TemplateTrace rootTrace;
     private final List<File> allXSLFiles;
     private final String correlationId;
-    private final String reportName;
 
-    public XSLTTraceReporter(TestTool testTool, File xmlFile, File xslFile, TemplateTrace rootTrace, String xsltResult, String correlationId, String reportName) {
+    public XSLTTraceReporter(TestTool testTool, File xmlFile, File xslFile, TemplateTrace rootTrace, String xsltResult, String correlationId) {
         this.testTool = testTool;
         this.xmlFile = xmlFile;
         this.xslFile = xslFile;
@@ -51,11 +50,10 @@ public class XSLTTraceReporter {
         this.allXSLFiles = new ArrayList<>();
         this.allXSLFiles.add(this.xslFile);
         this.correlationId = correlationId;
-        this.reportName = reportName;
     }
 
     public static void initiate(TestTool testTool, File xmlFile, File xslFile, TemplateTrace rootTrace, String xsltResult, String correlationId, String reportName){
-        XSLTTraceReporter reporter = new XSLTTraceReporter(testTool, xmlFile, xslFile, rootTrace, xsltResult, correlationId, reportName);
+        XSLTTraceReporter reporter = new XSLTTraceReporter(testTool, xmlFile, xslFile, rootTrace, xsltResult, correlationId);
         testTool.startpoint(correlationId, null, reportName, "XSLT Trace");
         reporter.start();
         testTool.endpoint(correlationId, null, reportName, "XSLT Trace");
@@ -169,15 +167,17 @@ public class XSLTTraceReporter {
             for (TemplateTrace templateTrace : trace.getChildTraces()) {
                 if(!templateTrace.isABuiltInTemplate()) {
                     testTool.startpoint(correlationId, templateTrace.getTraceId(), "template match=" + templateTrace.getTemplateMatch(), templateTrace.getWholeTrace(false));
-                    printTemplateXsl(templateTrace.getTemplateMatch());
+                    printTemplateXsl(templateTrace);
                     loopThroughAllTemplates(templateTrace);
                     testTool.endpoint(correlationId, templateTrace.getTraceId(), "template match=" + templateTrace.getTemplateMatch(), templateTrace.getWholeTrace(false));
-                } else {
-                    testTool.startpoint(correlationId, templateTrace.getTraceId(), "built-in-rule match=" + templateTrace.getTemplateMatch() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
-                    printTemplateXsl(templateTrace.getTemplateMatch());
-                    loopThroughAllTemplates(templateTrace);
-                    testTool.endpoint(correlationId, templateTrace.getTraceId(), "built-in-rule match=" + templateTrace.getTemplateMatch() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
                 }
+                //todo: save this code until solution for optional built-in-rules has been made
+//                else {
+//                    testTool.startpoint(correlationId, templateTrace.getTraceId(), "built-in-rule match=" + templateTrace.getTemplateMatch() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
+//                    printTemplateXsl(templateTrace.getTemplateMatch());
+//                    loopThroughAllTemplates(templateTrace);
+//                    testTool.endpoint(correlationId, templateTrace.getTraceId(), "built-in-rule match=" + templateTrace.getTemplateMatch() + " node=" + templateTrace.getSelectedNode(), templateTrace.getWholeTrace(false));
+//                }
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -186,10 +186,9 @@ public class XSLTTraceReporter {
 
     /**
      * Show the given template XSL from all XSL files that contain the given template match
-     * @param templateName template match to look for in XSL files
+     * @param trace template match inside trace object to look for in XSL files
      */
-    private void printTemplateXsl(String templateName) throws IOException, SAXException, XPathExpressionException {
-
+    private void printTemplateXsl(TemplateTrace trace) throws IOException, SAXException, XPathExpressionException {
         for (File file : allXSLFiles) {
             boolean hasMatchAttribute = false;
             Document doc = DocumentUtil.getDocumentBuilder().parse(file);
@@ -199,7 +198,7 @@ public class XSLTTraceReporter {
             for (int i = 0; i < nodeList.getLength(); i++) {
                 Element element = (Element) nodeList.item(i);
 
-                if (element.getAttribute("match").equals(templateName)) {
+                if (element.getAttribute("match").equals(trace.getTemplateMatch())) {
                     hasMatchAttribute = true;
                     StringBuilder stringBuilder = new StringBuilder();
                     getNodeIndentation(stringBuilder, nodeList.item(i), 0, true);
@@ -208,7 +207,9 @@ public class XSLTTraceReporter {
             }
             if (!hasMatchAttribute) continue;
 
-            testTool.infopoint(correlationId, null, file.getName(), result.toString());
+            testTool.infopoint(correlationId, null,
+                    "Line #" + trace.getLineNumber() + " Column #" + trace.getColumnNumber() + ": " + file.getName(),
+                    result.toString());
         }
     }
 
