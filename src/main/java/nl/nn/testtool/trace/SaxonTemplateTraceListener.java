@@ -19,6 +19,7 @@ package nl.nn.testtool.trace;
 import lombok.Getter;
 import net.sf.saxon.Controller;
 import net.sf.saxon.Version;
+import net.sf.saxon.event.Outputter;
 import net.sf.saxon.expr.Expression;
 import net.sf.saxon.expr.LetExpression;
 import net.sf.saxon.expr.XPathContext;
@@ -99,6 +100,9 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
     public void enter(Traceable info, Map<String, Object> properties, XPathContext context) {
         if (isApplicable(info)) {
             trace(info, properties, context);
+        }
+        if(info.getObjectName() != null) {
+            System.out.println(info.getObjectName().getDisplayName());
         }
     }
 
@@ -360,5 +364,13 @@ public class SaxonTemplateTraceListener extends StandardDiagnostics implements T
     @Override
     @Deprecated
     public void setOutputDestination(Logger stream) {
+    }
+
+    public void startElement(String element){
+        selectedTrace.addTraceContext("STARTELEMENT: " + element);
+    }
+
+    public void endElement(String element){
+        selectedTrace.addTraceContext("ENDELEMENT: " + element);
     }
 }
