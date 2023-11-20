@@ -9,6 +9,7 @@ import net.sf.saxon.s9api.Location;
 import net.sf.saxon.trans.XPathException;
 import net.sf.saxon.type.SchemaType;
 
+//todo: maak dit werkent met webapp
 public class SaxonContentReceiver extends ProxyReceiver {
     private final SaxonTemplateTraceListener listener;
 
